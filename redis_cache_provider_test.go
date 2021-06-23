@@ -1,14 +1,14 @@
-package cache_test
+package cache
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/thisXYH/cache"
+	"reflect"
 	"testing"
 	"time"
-)
 
-var cli = cache.NewRedisCacheProvider(RedisClient)
+	"github.com/go-redis/redis/v8"
+)
 
 type Person struct {
 	Name string
@@ -43,7 +43,7 @@ type Data struct {
 	Person Person
 
 	Time     time.Time
-	UnixTime cache.UnixTime
+	UnixTime UnixTime
 }
 
 var data = Data{
@@ -68,10 +68,11 @@ var data = Data{
 	String:   "21",
 	Person:   Person{"Jerry", 22},
 	Time:     time.Now(),
-	UnixTime: cache.UnixTime(time.Now()),
+	UnixTime: UnixTime(time.Now()),
 }
 
 func TestRedisCache(t *testing.T) {
+	cli := NewRedisCacheProvider(redisC)
 	dv, err := json.Marshal(data)
 	if err != nil {
 		t.Error(err)
@@ -127,5 +128,255 @@ func TestRedisCache(t *testing.T) {
 	r2 := cli.MustRemove(key)
 	if !r1 || r2 {
 		t.Error("预期 r1 == true , r2 == false")
+	}
+}
+
+func TestNewRedisCacheProvider(t *testing.T) {
+	type args struct {
+		cli redis.Cmdable
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *RedisCacheProvider
+		wantErr bool
+	}{
+		{"Client", args{&redis.Client{}}, &RedisCacheProvider{&redis.Client{}}, false},
+		{"Ring client", args{&redis.Ring{}}, &RedisCacheProvider{&redis.Ring{}}, false},
+		{"ClusterClient client", args{&redis.ClusterClient{}}, &RedisCacheProvider{&redis.ClusterClient{}}, false},
+		{"Tx client", args{&redis.Tx{}}, &RedisCacheProvider{&redis.Tx{}}, false},
+		{"nil value", args{nil}, nil, true},
+		// 哨兵客户端，不支持。
+		//{"client", args{&redis.SentinelClient{}}, &RedisCacheProvider{&redis.Client{}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := func() (p *RedisCacheProvider, e error) {
+				defer func() {
+					err := recover()
+					if err != nil {
+						e = err.(error)
+						p = nil
+					}
+				}()
+				return NewRedisCacheProvider(tt.args.cli), nil
+			}()
+
+			if !reflect.DeepEqual(got, tt.want) || (err != nil) != tt.wantErr {
+				t.Errorf("NewRedisCacheProvider() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRedisCacheProvider_Get(t *testing.T) {
+	type args struct {
+		key   string
+		value any
+	}
+	tests := []struct {
+		name    string
+		cli     *RedisCacheProvider
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.cli.Get(tt.args.key, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("RedisCacheProvider.Get() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRedisCacheProvider_MustGet(t *testing.T) {
+	type args struct {
+		key   string
+		value any
+	}
+	tests := []struct {
+		name string
+		cli  *RedisCacheProvider
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.cli.MustGet(tt.args.key, tt.args.value)
+		})
+	}
+}
+
+func TestRedisCacheProvider_TryGet(t *testing.T) {
+	type args struct {
+		key   string
+		value any
+	}
+	tests := []struct {
+		name    string
+		cli     *RedisCacheProvider
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.cli.TryGet(tt.args.key, tt.args.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RedisCacheProvider.TryGet() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("RedisCacheProvider.TryGet() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRedisCacheProvider_Create(t *testing.T) {
+	type args struct {
+		key   string
+		value any
+		t     time.Duration
+	}
+	tests := []struct {
+		name    string
+		cli     *RedisCacheProvider
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.cli.Create(tt.args.key, tt.args.value, tt.args.t)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RedisCacheProvider.Create() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("RedisCacheProvider.Create() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRedisCacheProvider_MustCreate(t *testing.T) {
+	type args struct {
+		key   string
+		value any
+		t     time.Duration
+	}
+	tests := []struct {
+		name string
+		cli  *RedisCacheProvider
+		args args
+		want bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cli.MustCreate(tt.args.key, tt.args.value, tt.args.t); got != tt.want {
+				t.Errorf("RedisCacheProvider.MustCreate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRedisCacheProvider_Set(t *testing.T) {
+	type args struct {
+		key   string
+		value any
+		t     time.Duration
+	}
+	tests := []struct {
+		name    string
+		cli     *RedisCacheProvider
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.cli.Set(tt.args.key, tt.args.value, tt.args.t); (err != nil) != tt.wantErr {
+				t.Errorf("RedisCacheProvider.Set() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRedisCacheProvider_MustSet(t *testing.T) {
+	type args struct {
+		key   string
+		value any
+		t     time.Duration
+	}
+	tests := []struct {
+		name string
+		cli  *RedisCacheProvider
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.cli.MustSet(tt.args.key, tt.args.value, tt.args.t)
+		})
+	}
+}
+
+func TestRedisCacheProvider_Remove(t *testing.T) {
+	type args struct {
+		key string
+	}
+	tests := []struct {
+		name    string
+		cli     *RedisCacheProvider
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.cli.Remove(tt.args.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RedisCacheProvider.Remove() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("RedisCacheProvider.Remove() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRedisCacheProvider_MustRemove(t *testing.T) {
+	type args struct {
+		key string
+	}
+	tests := []struct {
+		name string
+		cli  *RedisCacheProvider
+		args args
+		want bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cli.MustRemove(tt.args.key); got != tt.want {
+				t.Errorf("RedisCacheProvider.MustRemove() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

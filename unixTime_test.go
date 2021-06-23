@@ -1,8 +1,7 @@
-package cache_test
+package cache
 
 import (
 	"encoding/json"
-	"github.com/thisXYH/cache"
 	"strconv"
 	"testing"
 	"time"
@@ -11,7 +10,7 @@ import (
 func TestUnixTime(t *testing.T) {
 	now := time.Now()
 	millisecond := now.UnixNano() / int64(time.Millisecond)
-	unix := cache.UnixTime(now)
+	unix := UnixTime(now)
 	t.Log(millisecond)
 
 	b, err := json.Marshal(unix)
@@ -19,10 +18,18 @@ func TestUnixTime(t *testing.T) {
 		t.Error(err)
 	}
 
-	var temp cache.UnixTime
+	var temp UnixTime
 	json.Unmarshal(b, &temp)
 
 	if temp.String() != unix.String() || temp.String() != strconv.Itoa(int(millisecond)) {
 		t.Fail()
+	}
+}
+
+func TestXX(t *testing.T) {
+	m := make(map[int]int, 10)
+
+	for i := 0; i < 100; i++ {
+		m[i] = i
 	}
 }

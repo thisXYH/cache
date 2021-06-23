@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -33,15 +34,15 @@ type CacheOperation struct {
 // uniqueFlagLen : 指定用来拼接[:unique flag]部分的元素个数。
 func NewCacheOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider ICacheProvider, expireTime time.Duration) *CacheOperation {
 	if cacheNamespace == "" || keyPrefix == "" {
-		panic(`neither 'cacheNamespace' nor 'keyPrefix' can be zero value.`)
+		panic(errors.New(`neither 'cacheNamespace' nor 'keyPrefix' can be zero value`))
 	}
 
 	if cacheProvider == nil {
-		panic(`'cacheProvider' must not be nil.`)
+		panic(errors.New(`'cacheProvider' must not be nil`))
 	}
 
 	if uniqueFlagLen < 0 {
-		panic(`'uniqueFlagLen' must be greater than 1.`)
+		panic(errors.New(`'uniqueFlagLen' must be greater than 1`))
 	}
 
 	cp := &CacheOperation{}
@@ -57,7 +58,7 @@ func NewCacheOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cach
 // Key 获取指定key的缓存操作对象。
 func (c *CacheOperation) Key(keys ...interface{}) *KeyOperation {
 	if len(keys) != c.uniqueFlagLen {
-		panic(fmt.Sprintf("param 'keys' len(%d)  != uniqueFlagLen(%d)", len(keys), c.uniqueFlagLen))
+		panic(fmt.Errorf("param 'keys' len(%d)  != uniqueFlagLen(%d)", len(keys), c.uniqueFlagLen))
 	}
 
 	return &KeyOperation{
@@ -100,12 +101,16 @@ func (c *CacheOperation) oneKeyToStr(v interface{}) string {
 	vs := ""
 
 	switch s := v.(type) {
+	case string:
+		vs = s
 	case bool:
 		if s {
 			vs = "1"
 		} else {
 			vs = "0"
 		}
+	case time.Time:
+		vs = UnixTime(s).String() //毫秒级时间戳
 
 	case int:
 		vs = strconv.FormatInt(int64(s), 10)
@@ -127,20 +132,16 @@ func (c *CacheOperation) oneKeyToStr(v interface{}) string {
 		vs = strconv.FormatUint(uint64(s), 10)
 	case uint8:
 		vs = strconv.FormatUint(uint64(s), 10)
-
 	case float64:
 		vs = strconv.FormatFloat(s, 'f', -1, 64)
 	case float32:
 		vs = strconv.FormatFloat(float64(s), 'f', -1, 32)
 
-	case string:
-		vs = s
-	case time.Time:
-		vs = UnixTime(s).String() //毫秒级时间戳
 	case fmt.Stringer:
 		vs = s.String()
+
 	default:
-		panic(fmt.Sprintf("can't String %s (implement fmt.Stringer)", reflect.TypeOf(v).Name()))
+		panic(fmt.Errorf("can't String %s (implement fmt.Stringer)", reflect.TypeOf(v).Name()))
 	}
 
 	return vs

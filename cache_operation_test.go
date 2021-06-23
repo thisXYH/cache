@@ -1,9 +1,8 @@
-package cache_test
+package cache
 
 import (
 	"testing"
 )
 
 func TestBuildKey(t *testing.T) {
-
 }

@@ -1,13 +1,10 @@
-package cache_test
+package cache
 
 import (
-	"github.com/thisXYH/cache"
 	"testing"
 )
 
-var cacheProvider = cache.NewRedisCacheProvider(RedisClient)
-
-var cacheOp = cache.NewCacheOperation("go", "cache:test", 2, cacheProvider, 0)
+var cacheOp = NewCacheOperation("go", "cache:test", 2, redisCp, 0)
 
 func TestKeyOp(t *testing.T) {
 	value := "test value"

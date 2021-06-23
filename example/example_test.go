@@ -1,8 +1,8 @@
 package example
 
 import (
+	"cache"
 	"fmt"
-	"github.com/thisXYH/cache"
 	"testing"
 	"time"
 
