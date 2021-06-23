@@ -19,7 +19,6 @@ type MemoryCacheProvider struct {
 
 type memoryCacheData struct {
 	value any
-	kind  reflect.Kind
 	// 过期时间。
 	expireTime int64
 }
@@ -39,16 +38,25 @@ var (
 )
 
 func (cp *MemoryCacheProvider) Get(key string, value any) error {
-	panic("not implemented") // TODO: Implement
+	_, err := cp.TryGet(key, value)
+	return err
 }
 
 func (cp *MemoryCacheProvider) MustGet(key string, value any) {
-	panic("not implemented") // TODO: Implement
+	err := cp.Get(key, value)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
 	v, ok := cp.data[key]
 	if !ok {
+		return false, nil
+	}
+
+	// 过期
+	if cp.expireIfNeeded(key, v) {
 		return false, nil
 	}
 
@@ -60,36 +68,69 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
 	if !rv.IsValid() {
 		return false, errors.New("MemoryCacheProvider: Unmarshal(nil " + rv.Type().String() + ")")
 	}
-
-	if rv.Kind() != v.kind {
+	rv = rv.Elem()
+	if rv.Kind() != reflect.TypeOf(v.value).Kind() {
 		return false, errors.New("MemoryCacheProvider: type not equal")
 	}
 
-	rv.Elem().Set(reflect.ValueOf(v.value))
-
+	rv.Set(reflect.ValueOf(v.value))
 	return true, nil
 }
 
 func (cp *MemoryCacheProvider) Create(key string, value any, t time.Duration) (bool, error) {
-	panic("not implemented") // TODO: Implement
+	v, ok := cp.data[key]
+	if ok && !cp.expireIfNeeded(key, v) {
+		return false, nil
+	}
+
+	cp.data[key] = memoryCacheData{value, time.Now().UnixNano() + int64(t)}
+	return true, nil
 }
 
 func (cp *MemoryCacheProvider) MustCreate(key string, value any, t time.Duration) bool {
-	panic("not implemented") // TODO: Implement
+	v, err := cp.Create(key, value, t)
+	if err != nil {
+		panic(err)
+	}
+
+	return v
 }
 
 func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error {
-	panic("not implemented") // TODO: Implement
+	cp.data[key] = memoryCacheData{value, time.Now().UnixNano() + int64(t)}
+	return nil
 }
 
 func (cp *MemoryCacheProvider) MustSet(key string, value any, t time.Duration) {
-	panic("not implemented") // TODO: Implement
+	err := cp.Set(key, value, t)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
-	panic("not implemented") // TODO: Implement
+	_, ok := cp.data[key]
+	if ok {
+		delete(cp.data, key)
+	}
+	return true, nil
 }
 
 func (cp *MemoryCacheProvider) MustRemove(key string) bool {
-	panic("not implemented") // TODO: Implement
+	v, err := cp.Remove(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// expireIfNeeded 过期缓存如果需要的话。
+// true 过期
+// false 未过期
+func (cp *MemoryCacheProvider) expireIfNeeded(key string, v memoryCacheData) bool {
+	if v.expireTime <= time.Now().UnixNano() {
+		delete(cp.data, key)
+		return true
+	}
+	return false
 }

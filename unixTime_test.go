@@ -2,6 +2,8 @@ package cache
 
 import (
 	"encoding/json"
+	"fmt"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -27,9 +29,13 @@ func TestUnixTime(t *testing.T) {
 }
 
 func TestXX(t *testing.T) {
-	m := make(map[int]int, 10)
+	data := int64(1)
+	var i interface{} = data
 
-	for i := 0; i < 100; i++ {
-		m[i] = i
-	}
+	var data2 int64
+	var i2 interface{} = &data2
+
+	reflect.ValueOf(i2).Elem().Set(reflect.ValueOf(i))
+
+	fmt.Println(data2)
 }
