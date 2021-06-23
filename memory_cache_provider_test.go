@@ -12,7 +12,7 @@ func TestMemoryCacheProvider(t *testing.T) {
 
 	cache.Set("ffaf", int64(10), time.Minute)
 
-	var i int64
+	var i int8
 	cache.MustGet("ffaf", &i)
 	fmt.Println(i)
 

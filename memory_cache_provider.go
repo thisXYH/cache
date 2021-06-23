@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"cache/conv"
 	"errors"
 	"reflect"
 	"sync"
@@ -69,11 +70,12 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
 		return false, errors.New("MemoryCacheProvider: Unmarshal(nil " + rv.Type().String() + ")")
 	}
 	rv = rv.Elem()
-	if rv.Kind() != reflect.TypeOf(v.value).Kind() {
-		return false, errors.New("MemoryCacheProvider: type not equal")
+	temp, err := conv.Convert(v.value, rv.Type())
+	if err != nil {
+		return false, nil
 	}
 
-	rv.Set(reflect.ValueOf(v.value))
+	rv.Set(reflect.ValueOf(temp))
 	return true, nil
 }
 
