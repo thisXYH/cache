@@ -12,7 +12,7 @@ import (
 // Redis 类型的缓存提供器。
 // 数据的组织方式，基础类型直接使用
 type RedisCacheProvider struct {
-	client redis.Cmdable // redis 驱动中所有类型的client实现的接口。
+	client redis.Cmdable
 }
 
 var (

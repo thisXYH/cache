@@ -40,7 +40,7 @@ func (cp *MemoryCacheProvider) MustGet(key string, value any) {
 	}
 }
 
-func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
+func (cp *MemoryCacheProvider) TryGet(key string, value any) (succ bool, err error) {
 	v, exists := cp.cache.Get(key)
 	if !exists {
 		return false, nil
@@ -50,14 +50,28 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
 	if rv.Kind() != reflect.Ptr {
 		return false, fmt.Errorf("'value' is not pointer")
 	}
+
 	if !rv.IsValid() {
 		return false, fmt.Errorf("'value' is nil")
 	}
 
 	rv = rv.Elem()
-	temp, err := conv.Convert(v, rv.Type())
-	if err != nil {
-		return false, nil
+	var temp interface{}
+	switch rv.Kind() {
+	case reflect.Bool, reflect.String,
+		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128:
+		temp, err = conv.Convert(v, rv.Type())
+		if err != nil {
+			return false, nil
+		}
+	default:
+		if !rv.CanSet() {
+			return false, fmt.Errorf("%t can't set value", rv.Type())
+		}
+
+		temp = v
 	}
 
 	rv.Set(reflect.ValueOf(temp))

@@ -6,7 +6,7 @@ import (
 
 type any interface{}
 
-var (
+const (
 	//不过期。
 	NoExpiration time.Duration = 0
 )

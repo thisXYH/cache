@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+const (
+	// key = nil的时候，使用的代替表示。
+	nilKeyString = "@.nil.@*"
+)
+
 // CacheOperation 缓存操作对象。
 type CacheOperation struct {
 	// 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]
@@ -102,6 +107,9 @@ func (c *CacheOperation) buildCacheKey(keys ...interface{}) string {
 */
 func (c *CacheOperation) oneKeyToStr(v interface{}) string {
 	v = c.indirect(v)
+	if v == nil { //空值替代。
+		return nilKeyString
+	}
 	vs := ""
 
 	switch s := v.(type) {
