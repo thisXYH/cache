@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"errors"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strconv"
 	"strings"
@@ -28,6 +28,9 @@ type CacheOperation struct {
 	// expireTime 过期时长。
 	expireTime time.Duration
 
+	// 过期时间随机量。
+	randomRangeTime time.Duration
+
 	// [:unique flag] 部分的拼接元素的个数。
 	// 不支持的拼接类型：Complex64, Complex128, Array, Chan, Func ,Interface, Map, Slice, Struct, UnsafePointer
 	uniqueFlagLen int
@@ -37,21 +40,25 @@ type CacheOperation struct {
 // 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]
 // expireTime : 过期时长， 0表不过期。
 // uniqueFlagLen : 指定用来拼接[:unique flag]部分的元素个数。
-func NewCacheOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider ICacheProvider, expireTime time.Duration) *CacheOperation {
+func NewCacheOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider ICacheProvider, expireTime time.Duration, randomRangeTime time.Duration) *CacheOperation {
 	if cacheNamespace == "" || keyPrefix == "" {
-		panic(errors.New(`neither 'cacheNamespace' nor 'keyPrefix' can be zero value`))
+		panic(fmt.Errorf(`neither 'cacheNamespace' nor 'keyPrefix' can be zero value`))
 	}
 
 	if cacheProvider == nil {
-		panic(errors.New(`'cacheProvider' must not be nil`))
+		panic(fmt.Errorf(`'cacheProvider' must not be nil`))
 	}
 
 	if uniqueFlagLen < 0 {
-		panic(errors.New(`'uniqueFlagLen' must be greater than 1`))
+		panic(fmt.Errorf(`'uniqueFlagLen' must not be letter than 0`))
 	}
 
-	if expireTime < 0 {
-		panic(errors.New(`'expireTime' must be greater than 0`))
+	if expireTime < 0 || randomRangeTime < 0 {
+		panic(fmt.Errorf(`'expireTime' and 'randomRangeTime' must not be letter than 0`))
+	}
+
+	if expireTime < randomRangeTime {
+		panic(fmt.Errorf(`'expireTime' must not be letter than 'randomRangeTime'`))
 	}
 
 	cp := &CacheOperation{}
@@ -59,9 +66,21 @@ func NewCacheOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cach
 	cp.keyBase = cacheNamespace + ":" + keyPrefix
 	cp.cacheProvider = cacheProvider
 	cp.expireTime = expireTime
+	cp.randomRangeTime = randomRangeTime
 	cp.uniqueFlagLen = uniqueFlagLen
 
 	return cp
+}
+
+func (c *CacheOperation) nextExpireTime() time.Duration {
+	if c.expireTime == NoExpiration {
+		return NoExpiration
+	}
+	if rand.Int31n(2) == 0 {
+		return time.Duration(int64(c.expireTime) - rand.Int63n(int64(c.randomRangeTime)))
+	} else {
+		return time.Duration(int64(c.expireTime) + rand.Int63n(int64(c.randomRangeTime)))
+	}
 }
 
 // Key 获取指定key的缓存操作对象。

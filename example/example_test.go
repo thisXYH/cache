@@ -17,7 +17,7 @@ var cacheProvider cache.ICacheProvider = cache.NewRedisCacheProvider(redis.NewCl
 }))
 
 // 实例化一个缓存操作对象。
-var cacheOp = cache.NewCacheOperation("go", "cache:test", 3, cacheProvider, 1*time.Minute)
+var cacheOp = cache.NewCacheOperation("go", "cache:test", 3, cacheProvider, 5*time.Minute, 1*time.Minute)
 
 func TestExample(t *testing.T) {
 	value := "test value"

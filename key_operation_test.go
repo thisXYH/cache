@@ -2,12 +2,14 @@ package cache
 
 import (
 	"testing"
+	"time"
 )
 
-var cacheOp = NewCacheOperation("go", "cache:test", 2, redisCp, 0)
+var cacheOp = NewCacheOperation("go", "cache:test", 2, redisCp, 5*time.Minute, 1*time.Minute)
 
 func TestKeyOp(t *testing.T) {
-	value := "test value"
+
+	value := "test valueaa"
 	keyOp := cacheOp.Key("keyOp", "haha")
 	keyOp.MustSet(value)
 

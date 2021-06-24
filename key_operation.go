@@ -30,23 +30,23 @@ func (keyOp *KeyOperation) TryGet(value any) (bool, error) {
 // t 过期时长， 0 表不过期。
 // return: true表示创建了缓存；false说明缓存已经存在了。
 func (keyOp *KeyOperation) Create(value any) (bool, error) {
-	return keyOp.cp.cacheProvider.Create(keyOp.Key, value, keyOp.cp.expireTime)
+	return keyOp.cp.cacheProvider.Create(keyOp.Key, value, keyOp.cp.nextExpireTime())
 }
 
 // MustCreate 是 Create 的 panic 版。
 func (keyOp *KeyOperation) MustCreate(value any) bool {
-	return keyOp.cp.cacheProvider.MustCreate(keyOp.Key, value, keyOp.cp.expireTime)
+	return keyOp.cp.cacheProvider.MustCreate(keyOp.Key, value, keyOp.cp.nextExpireTime())
 }
 
 // Set 设置或者更新缓存，
 // t 过期时长， 0 表不过期。
 func (keyOp *KeyOperation) Set(value any) error {
-	return keyOp.cp.cacheProvider.Set(keyOp.Key, value, keyOp.cp.expireTime)
+	return keyOp.cp.cacheProvider.Set(keyOp.Key, value, keyOp.cp.nextExpireTime())
 }
 
 // MustSet 是 Set 的 panic 版。
 func (keyOp *KeyOperation) MustSet(value any) {
-	keyOp.cp.cacheProvider.MustSet(keyOp.Key, value, keyOp.cp.expireTime)
+	keyOp.cp.cacheProvider.MustSet(keyOp.Key, value, keyOp.cp.nextExpireTime())
 }
 
 // Remove 移除指定缓存,
