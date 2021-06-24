@@ -6,6 +6,11 @@ import (
 
 type any interface{}
 
+var (
+	//不过期。
+	NoExpiration time.Duration = 0
+)
+
 // ICacheProvider 提供一套缓存语义。
 type ICacheProvider interface {
 	// Get 获取指定缓存值,

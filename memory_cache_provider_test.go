@@ -8,7 +8,7 @@ import (
 )
 
 func TestMemoryCacheProvider(t *testing.T) {
-	cache := NewMemoryCacheProvider(10)
+	cache := NewMemoryCacheProvider(10 * time.Second)
 
 	cache.Set("ffaf", int64(10), time.Minute)
 
@@ -31,7 +31,7 @@ func TestNewMemoryCacheProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewMemoryCacheProvider(tt.args.count); !reflect.DeepEqual(got, tt.want) {
+			if got := NewMemoryCacheProvider(10 * time.Second); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewMemoryCacheProvider() = %v, want %v", got, tt.want)
 			}
 		})
@@ -245,28 +245,6 @@ func TestMemoryCacheProvider_MustRemove(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.cp.MustRemove(tt.args.key); got != tt.want {
 				t.Errorf("MemoryCacheProvider.MustRemove() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestMemoryCacheProvider_expireIfNeeded(t *testing.T) {
-	type args struct {
-		key string
-		v   memoryCacheData
-	}
-	tests := []struct {
-		name string
-		cp   *MemoryCacheProvider
-		args args
-		want bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.cp.expireIfNeeded(tt.args.key, tt.args.v); got != tt.want {
-				t.Errorf("MemoryCacheProvider.expireIfNeeded() = %v, want %v", got, tt.want)
 			}
 		})
 	}

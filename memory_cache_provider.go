@@ -2,36 +2,26 @@ package cache
 
 import (
 	"cache/conv"
-	"errors"
+	"fmt"
 	"reflect"
-	"sync"
 	"time"
+
+	c "github.com/patrickmn/go-cache"
 )
 
 // 内存 类型的缓存提供器,
 // 数据的组织方式，基础类型直接使用
 type MemoryCacheProvider struct {
-	data           map[string]memoryCacheData
-	mu             sync.Mutex
-	isClearning    bool
-	thresholdCount int
-	count          int
+	cache *c.Cache // 线程安全的缓存
 }
 
-type memoryCacheData struct {
-	value any
-	// 过期时间。
-	expireTime int64
-}
-
-func NewMemoryCacheProvider(count int) *MemoryCacheProvider {
-	return &MemoryCacheProvider{
-		data:           make(map[string]memoryCacheData, 1024),
-		thresholdCount: 1024,
-		count:          1024,
-		isClearning:    false,
-		mu:             sync.Mutex{},
+// NewMemoryCacheProvider
+func NewMemoryCacheProvider(cleanupInterval time.Duration) *MemoryCacheProvider {
+	// 限制清理周期 >= 1 sec 防止负载过高，以及锁缓存。
+	if cleanupInterval < time.Second {
+		panic(fmt.Errorf("'cleanupInterval' must be greater than 1 second"))
 	}
+	return &MemoryCacheProvider{c.New(cleanupInterval, cleanupInterval)}
 }
 
 var (
@@ -51,26 +41,21 @@ func (cp *MemoryCacheProvider) MustGet(key string, value any) {
 }
 
 func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
-	v, ok := cp.data[key]
-	if !ok {
-		return false, nil
-	}
-
-	// 过期
-	if cp.expireIfNeeded(key, v) {
+	v, exists := cp.cache.Get(key)
+	if !exists {
 		return false, nil
 	}
 
 	rv := reflect.ValueOf(value)
 	if rv.Kind() != reflect.Ptr {
-		return false, errors.New("MemoryCacheProvider: Unmarshal(non-pointer " + rv.Type().String() + ")")
+		return false, fmt.Errorf("'value' is not pointer")
+	}
+	if !rv.IsValid() {
+		return false, fmt.Errorf("'value' is nil")
 	}
 
-	if !rv.IsValid() {
-		return false, errors.New("MemoryCacheProvider: Unmarshal(nil " + rv.Type().String() + ")")
-	}
 	rv = rv.Elem()
-	temp, err := conv.Convert(v.value, rv.Type())
+	temp, err := conv.Convert(v, rv.Type())
 	if err != nil {
 		return false, nil
 	}
@@ -80,12 +65,12 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
 }
 
 func (cp *MemoryCacheProvider) Create(key string, value any, t time.Duration) (bool, error) {
-	v, ok := cp.data[key]
-	if ok && !cp.expireIfNeeded(key, v) {
+	t = cp.legalExpireTime(t)
+	err := cp.cache.Add(key, value, t)
+	if err != nil {
 		return false, nil
 	}
 
-	cp.data[key] = memoryCacheData{value, time.Now().UnixNano() + int64(t)}
 	return true, nil
 }
 
@@ -99,7 +84,8 @@ func (cp *MemoryCacheProvider) MustCreate(key string, value any, t time.Duration
 }
 
 func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error {
-	cp.data[key] = memoryCacheData{value, time.Now().UnixNano() + int64(t)}
+	t = cp.legalExpireTime(t)
+	cp.cache.Set(key, value, t)
 	return nil
 }
 
@@ -111,11 +97,9 @@ func (cp *MemoryCacheProvider) MustSet(key string, value any, t time.Duration) {
 }
 
 func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
-	_, ok := cp.data[key]
-	if ok {
-		delete(cp.data, key)
-	}
-	return true, nil
+	_, exists := cp.cache.Get(key)
+	cp.cache.Delete(key)
+	return exists, nil
 }
 
 func (cp *MemoryCacheProvider) MustRemove(key string) bool {
@@ -126,13 +110,14 @@ func (cp *MemoryCacheProvider) MustRemove(key string) bool {
 	return v
 }
 
-// expireIfNeeded 过期缓存如果需要的话。
-// true 过期
-// false 未过期
-func (cp *MemoryCacheProvider) expireIfNeeded(key string, v memoryCacheData) bool {
-	if v.expireTime <= time.Now().UnixNano() {
-		delete(cp.data, key)
-		return true
+func (*MemoryCacheProvider) legalExpireTime(t time.Duration) time.Duration {
+	if t < 0 {
+		panic(fmt.Errorf("expire time must not be letter than 0"))
 	}
-	return false
+
+	if t == NoExpiration {
+		return c.NoExpiration
+	}
+
+	return t
 }

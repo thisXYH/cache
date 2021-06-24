@@ -45,6 +45,10 @@ func NewCacheOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cach
 		panic(errors.New(`'uniqueFlagLen' must be greater than 1`))
 	}
 
+	if expireTime < 0 {
+		panic(errors.New(`'expireTime' must be greater than 0`))
+	}
+
 	cp := &CacheOperation{}
 	cp.cacheNamespace = cacheNamespace
 	cp.keyBase = cacheNamespace + ":" + keyPrefix
