@@ -162,9 +162,8 @@ func TestIncrease(t *testing.T) {
 		}(time.Duration(i))
 	}
 	wg.Wait()
-	var kv int64
-	redisCp.MustGet(key, &kv)
-	if kv-startNumber != successCount {
+	kv, _ := redisCp.Increase(key) // 测返回值
+	if kv-startNumber-1 != successCount {
 		t.Errorf("kv: %d  !=   successCount: %d", kv, successCount)
 	}
 	fmt.Println(kv)

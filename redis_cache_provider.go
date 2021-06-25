@@ -147,9 +147,10 @@ func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
 		kv++
 		value = kv
 		_, err = tx.TxPipelined(tx.Context(), func(pipe redis.Pipeliner) error {
-			cmd := pipe.Incr(tx.Context(), key)
-			//cmd := pipe.Set(tx.Context(), key, kv, 0)  debug
-			return cmd.Err()
+			// 这边应该默认返回了空的结果，具体执行情况是需要管道执行结束才有的，
+			// 所以不需要接收。
+			pipe.Incr(tx.Context(), key)
+			return nil
 		})
 		return err
 	}
