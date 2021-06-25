@@ -124,6 +124,16 @@ func (cp *MemoryCacheProvider) MustRemove(key string) bool {
 	return v
 }
 
+func (cp *MemoryCacheProvider) Increase(key string) (int64, error) {
+	return cp.cache.IncrementInt64(key, 1)
+}
+
+func (cp *MemoryCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
+	// TODO: 这个缓存没有提供这个api， 如果自己包装一层， 就相当于，锁两层了，
+	// 可能需要把 他的代码扣出来做吧。
+	return 0, fmt.Errorf("Unimplement")
+}
+
 func (*MemoryCacheProvider) legalExpireTime(t time.Duration) time.Duration {
 	if t < 0 {
 		panic(fmt.Errorf("expire time must not be letter than 0"))

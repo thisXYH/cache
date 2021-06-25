@@ -48,7 +48,7 @@ type ICacheProvider interface {
 	// MustRemove 是 Remove 的 panic 版。
 	MustRemove(key string) bool
 
-	// Increase(key string) (int64, error)
+	Increase(key string) (int64, error)
 
-	// MustIncrease(key string) int64
+	IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error)
 }
