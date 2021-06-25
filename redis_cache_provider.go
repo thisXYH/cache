@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -126,4 +127,65 @@ func (cli *RedisCacheProvider) MustRemove(key string) bool {
 		panic(err)
 	}
 	return v
+}
+
+// 增加
+func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
+	const MaxRetries = 3 //最大重试次数。
+
+	var value int64 = 0
+	increaseIfExistsTrans := func(tx *redis.Tx) error {
+		cmd := tx.Get(tx.Context(), key)
+		kv, err := cmd.Int64() //只关心key存不存在，以及是不是数字。
+		if err != nil {
+			if err == redis.Nil { //缓存不存在
+				return fmt.Errorf("cache key not exists")
+			}
+			// 存在但不是数字，或者其他error
+			return err
+		}
+		kv++
+		value = kv
+		_, err = tx.TxPipelined(tx.Context(), func(pipe redis.Pipeliner) error {
+			cmd := pipe.Incr(tx.Context(), key)
+			//cmd := pipe.Set(tx.Context(), key, kv, 0)  debug
+			return cmd.Err()
+		})
+		return err
+	}
+
+	type Watcher interface {
+		Watch(context.Context, func(*redis.Tx) error, ...string) error
+	}
+	watcher, ok := cli.client.(Watcher)
+	if !ok {
+		return 0, fmt.Errorf("unsupport redis client type: %t", cli.client)
+	}
+	for i := 0; i < MaxRetries; i++ {
+		err := watcher.Watch(context.Background(), increaseIfExistsTrans, key)
+		if err == nil {
+			return value, err
+		}
+		if err == redis.TxFailedErr {
+			continue
+		}
+		return 0, err
+	}
+
+	return 0, fmt.Errorf("increment reached maximum number of retries(%d)", MaxRetries)
+}
+
+func (cli *RedisCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
+	cmd := cli.client.IncrBy(context.Background(), key, increment)
+	v, err := cmd.Result()
+	if err != nil {
+		return 0, err
+	}
+
+	// 如果key是新创建的，指定过期时间。
+	if v == increment {
+		cli.client.Expire(context.Background(), key, t)
+	}
+
+	return v, err
 }

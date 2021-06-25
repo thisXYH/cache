@@ -1,9 +1,14 @@
 package cache
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
+	"runtime"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -128,6 +133,58 @@ func TestRedisCache(t *testing.T) {
 	r2 := cli.MustRemove(key)
 	if !r1 || r2 {
 		t.Error("预期 r1 == true , r2 == false")
+	}
+}
+
+func TestIncrease(t *testing.T) {
+	runtime.GOMAXPROCS(3)
+	const DoTimes = 1000
+	startNumber := int64(300) //必须非0
+
+	key := "key_" + fmt.Sprint(rand.Int31())
+	redisCp.Remove(key) // 确保key 不存在
+
+	wg := sync.WaitGroup{}
+	wg.Add(DoTimes)
+
+	successCount := int64(0)
+	for i := 0; i < DoTimes; i++ {
+		if i == int(startNumber) {
+			redisCp.Set(key, startNumber, time.Minute) // 延迟设置键
+		}
+		go func(t time.Duration) {
+			time.Sleep(time.Duration(t) * time.Nanosecond) //延迟执行
+			defer wg.Done()
+			_, err := redisCp.Increase(key)
+			if err == nil {
+				atomic.AddInt64(&successCount, 1)
+			}
+		}(time.Duration(i))
+	}
+	wg.Wait()
+	var kv int64
+	redisCp.MustGet(key, &kv)
+	if kv-startNumber != successCount {
+		t.Errorf("kv: %d  !=   successCount: %d", kv, successCount)
+	}
+	fmt.Println(kv)
+}
+
+func TestIncreaseOrCreate(t *testing.T) {
+	key := "key_" + fmt.Sprint(rand.Int31())
+	redisCp.Remove(key)
+
+	redisCp.IncreaseOrCreate(key, 10, 1*time.Minute) //1 min
+	redisCp.IncreaseOrCreate(key, 10, 2*time.Minute) //1 min
+
+	cmd := redisCp.client.TTL(context.Background(), key)
+	if cmd.Val() > 1*time.Minute {
+		t.Errorf("expire time error")
+	}
+
+	cmd2 := redisCp.client.Get(context.Background(), key)
+	if v, _ := cmd2.Int(); v != 20 {
+		t.Errorf("expire time error")
 	}
 }
 
