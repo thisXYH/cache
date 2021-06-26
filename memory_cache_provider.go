@@ -4,6 +4,7 @@ import (
 	"cache/conv"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	c "github.com/patrickmn/go-cache"
@@ -13,6 +14,7 @@ import (
 // 数据的组织方式，基础类型直接使用
 type MemoryCacheProvider struct {
 	cache *c.Cache // 线程安全的缓存
+	mu    sync.RWMutex
 }
 
 // NewMemoryCacheProvider
@@ -21,7 +23,7 @@ func NewMemoryCacheProvider(cleanupInterval time.Duration) *MemoryCacheProvider 
 	if cleanupInterval < time.Second {
 		panic(fmt.Errorf("'cleanupInterval' must be greater than 1 second"))
 	}
-	return &MemoryCacheProvider{c.New(cleanupInterval, cleanupInterval)}
+	return &MemoryCacheProvider{c.New(cleanupInterval, cleanupInterval), sync.RWMutex{}}
 }
 
 var (
@@ -30,6 +32,7 @@ var (
 
 func (cp *MemoryCacheProvider) Get(key string, value any) error {
 	_, err := cp.TryGet(key, value)
+
 	return err
 }
 
@@ -41,6 +44,9 @@ func (cp *MemoryCacheProvider) MustGet(key string, value any) {
 }
 
 func (cp *MemoryCacheProvider) TryGet(key string, value any) (succ bool, err error) {
+	cp.mu.RLock()
+	defer cp.mu.RUnlock()
+
 	v, exists := cp.cache.Get(key)
 	if !exists {
 		return false, nil
@@ -79,6 +85,9 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (succ bool, err err
 }
 
 func (cp *MemoryCacheProvider) Create(key string, value any, t time.Duration) (bool, error) {
+	cp.mu.Lock()
+	defer cp.mu.Lock()
+
 	t = cp.legalExpireTime(t)
 	err := cp.cache.Add(key, value, t)
 	if err != nil {
@@ -98,6 +107,9 @@ func (cp *MemoryCacheProvider) MustCreate(key string, value any, t time.Duration
 }
 
 func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error {
+	cp.mu.Lock()
+	defer cp.mu.Lock()
+
 	t = cp.legalExpireTime(t)
 	cp.cache.Set(key, value, t)
 	return nil
@@ -111,6 +123,9 @@ func (cp *MemoryCacheProvider) MustSet(key string, value any, t time.Duration) {
 }
 
 func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
+	cp.mu.Lock()
+	defer cp.mu.Lock()
+
 	_, exists := cp.cache.Get(key)
 	cp.cache.Delete(key)
 	return exists, nil
@@ -125,13 +140,23 @@ func (cp *MemoryCacheProvider) MustRemove(key string) bool {
 }
 
 func (cp *MemoryCacheProvider) Increase(key string) (int64, error) {
+	cp.mu.Lock()
+	defer cp.mu.Lock()
+
 	return cp.cache.IncrementInt64(key, 1)
 }
 
 func (cp *MemoryCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
-	// TODO: 这个缓存没有提供这个api， 如果自己包装一层， 就相当于，锁两层了，
-	// 可能需要把 他的代码扣出来做吧。
-	return 0, fmt.Errorf("Unimplement")
+	cp.mu.Lock()
+	defer cp.mu.Lock()
+
+	_, exists := cp.cache.Get(key)
+	if exists {
+		return cp.cache.IncrementInt64(key, increment)
+	}
+
+	cp.cache.Set(key, increment, t)
+	return increment, nil
 }
 
 func (*MemoryCacheProvider) legalExpireTime(t time.Duration) time.Duration {
