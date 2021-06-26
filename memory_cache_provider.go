@@ -30,12 +30,14 @@ var (
 	_ ICacheProvider = (*MemoryCacheProvider)(nil)
 )
 
+// implement ICacheProvider.Get
 func (cp *MemoryCacheProvider) Get(key string, value any) error {
 	_, err := cp.TryGet(key, value)
 
 	return err
 }
 
+// implement ICacheProvider.MustGet
 func (cp *MemoryCacheProvider) MustGet(key string, value any) {
 	err := cp.Get(key, value)
 	if err != nil {
@@ -43,6 +45,7 @@ func (cp *MemoryCacheProvider) MustGet(key string, value any) {
 	}
 }
 
+// implement ICacheProvider.TryGet
 func (cp *MemoryCacheProvider) TryGet(key string, value any) (succ bool, err error) {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
@@ -84,6 +87,7 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (succ bool, err err
 	return true, nil
 }
 
+// implement ICacheProvider.Create
 func (cp *MemoryCacheProvider) Create(key string, value any, t time.Duration) (bool, error) {
 	cp.mu.Lock()
 	defer cp.mu.Lock()
@@ -97,6 +101,7 @@ func (cp *MemoryCacheProvider) Create(key string, value any, t time.Duration) (b
 	return true, nil
 }
 
+// implement ICacheProvider.MustCreate
 func (cp *MemoryCacheProvider) MustCreate(key string, value any, t time.Duration) bool {
 	v, err := cp.Create(key, value, t)
 	if err != nil {
@@ -106,6 +111,7 @@ func (cp *MemoryCacheProvider) MustCreate(key string, value any, t time.Duration
 	return v
 }
 
+// implement ICacheProvider.Set
 func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error {
 	cp.mu.Lock()
 	defer cp.mu.Lock()
@@ -115,6 +121,7 @@ func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error
 	return nil
 }
 
+// implement ICacheProvider.MustSet
 func (cp *MemoryCacheProvider) MustSet(key string, value any, t time.Duration) {
 	err := cp.Set(key, value, t)
 	if err != nil {
@@ -122,6 +129,7 @@ func (cp *MemoryCacheProvider) MustSet(key string, value any, t time.Duration) {
 	}
 }
 
+// implement ICacheProvider.Remove
 func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
 	cp.mu.Lock()
 	defer cp.mu.Lock()
@@ -131,6 +139,7 @@ func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
 	return exists, nil
 }
 
+// implement ICacheProvider.MustRemove
 func (cp *MemoryCacheProvider) MustRemove(key string) bool {
 	v, err := cp.Remove(key)
 	if err != nil {
@@ -139,6 +148,7 @@ func (cp *MemoryCacheProvider) MustRemove(key string) bool {
 	return v
 }
 
+// implement ICacheProvider.Increase
 func (cp *MemoryCacheProvider) Increase(key string) (int64, error) {
 	cp.mu.Lock()
 	defer cp.mu.Lock()
@@ -146,6 +156,16 @@ func (cp *MemoryCacheProvider) Increase(key string) (int64, error) {
 	return cp.cache.IncrementInt64(key, 1)
 }
 
+// implement ICacheProvider.MustIncrease
+func (cp *MemoryCacheProvider) MustIncrease(key string) int64 {
+	v, err := cp.Increase(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// implement ICacheProvider.IncreaseOrCreate
 func (cp *MemoryCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
 	cp.mu.Lock()
 	defer cp.mu.Lock()
@@ -157,6 +177,15 @@ func (cp *MemoryCacheProvider) IncreaseOrCreate(key string, increment int64, t t
 
 	cp.cache.Set(key, increment, t)
 	return increment, nil
+}
+
+// implement ICacheProvider.MustIncreaseOrCreate
+func (cp *MemoryCacheProvider) MustIncreaseOrCreate(key string, increment int64, t time.Duration) int64 {
+	v, err := cp.IncreaseOrCreate(key, increment, t)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func (*MemoryCacheProvider) legalExpireTime(t time.Duration) time.Duration {

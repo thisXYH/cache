@@ -129,7 +129,7 @@ func (cli *RedisCacheProvider) MustRemove(key string) bool {
 	return v
 }
 
-// 增加
+// implement ICacheProvider.Increase
 func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
 	const MaxRetries = 3 //最大重试次数。
 
@@ -176,6 +176,16 @@ func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
 	return 0, fmt.Errorf("increment reached maximum number of retries(%d)", MaxRetries)
 }
 
+// implement ICacheProvider.MustIncrease
+func (cli *RedisCacheProvider) MustIncrease(key string) int64 {
+	v, err := cli.Increase(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// implement ICacheProvider.IncreaseOrCreate
 func (cli *RedisCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
 	cmd := cli.client.IncrBy(context.Background(), key, increment)
 	v, err := cmd.Result()
@@ -189,4 +199,13 @@ func (cli *RedisCacheProvider) IncreaseOrCreate(key string, increment int64, t t
 	}
 
 	return v, err
+}
+
+// implement ICacheProvider.MustIncreaseOrCreate
+func (cli *RedisCacheProvider) MustIncreaseOrCreate(key string, increment int64, t time.Duration) int64 {
+	v, err := cli.IncreaseOrCreate(key, increment, t)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
