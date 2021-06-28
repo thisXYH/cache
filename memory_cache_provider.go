@@ -90,7 +90,7 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (succ bool, err err
 // implement ICacheProvider.Create
 func (cp *MemoryCacheProvider) Create(key string, value any, t time.Duration) (bool, error) {
 	cp.mu.Lock()
-	defer cp.mu.Lock()
+	defer cp.mu.Unlock()
 
 	t = cp.legalExpireTime(t)
 	err := cp.cache.Add(key, value, t)
@@ -114,7 +114,7 @@ func (cp *MemoryCacheProvider) MustCreate(key string, value any, t time.Duration
 // implement ICacheProvider.Set
 func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error {
 	cp.mu.Lock()
-	defer cp.mu.Lock()
+	defer cp.mu.Unlock()
 
 	t = cp.legalExpireTime(t)
 	cp.cache.Set(key, value, t)
@@ -132,7 +132,7 @@ func (cp *MemoryCacheProvider) MustSet(key string, value any, t time.Duration) {
 // implement ICacheProvider.Remove
 func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
 	cp.mu.Lock()
-	defer cp.mu.Lock()
+	defer cp.mu.Unlock()
 
 	_, exists := cp.cache.Get(key)
 	cp.cache.Delete(key)
@@ -151,7 +151,7 @@ func (cp *MemoryCacheProvider) MustRemove(key string) bool {
 // implement ICacheProvider.Increase
 func (cp *MemoryCacheProvider) Increase(key string) (int64, error) {
 	cp.mu.Lock()
-	defer cp.mu.Lock()
+	defer cp.mu.Unlock()
 
 	return cp.cache.IncrementInt64(key, 1)
 }
@@ -168,7 +168,7 @@ func (cp *MemoryCacheProvider) MustIncrease(key string) int64 {
 // implement ICacheProvider.IncreaseOrCreate
 func (cp *MemoryCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
 	cp.mu.Lock()
-	defer cp.mu.Lock()
+	defer cp.mu.Unlock()
 
 	_, exists := cp.cache.Get(key)
 	if exists {
