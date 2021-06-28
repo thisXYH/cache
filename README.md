@@ -18,7 +18,10 @@ func ExampleKeyOperation() {
 	//  指定缓存的过期时间为，10分钟 再加上 2分钟 的随机量 上下波动
 	//
 	// 正常情况下该变量声明成全局变量，不需要重复声明。
-	cacheOp := NewOperation("go", "cache:test", 2, NewMemoryCacheProvider(1*time.Minute), NewExpireTimeFromMinute(10, 2))
+	cacheOp := NewOperation(
+		"go", "cache:test", 2,
+		NewMemoryCacheProvider(1*time.Minute),
+		NewExpireTimeFromMinute(10, 2))
 
 	// 获取 key 操作对象
 	// 这个对象中包含了组装好的完整换缓存key，
