@@ -6,13 +6,11 @@ import (
 
 type any interface{}
 
-const (
-	// 缓存不过期。
-	NoExpiration time.Duration = 0
-)
+const NoExpiration time.Duration = 0                      // 缓存不过期。
+var CacheExpirationZero *ExpireTime = NewExpiration(0, 0) // 缓存不过期。
 
-// ICacheProvider 提供一套缓存语义.
-type ICacheProvider interface {
+// CacheProvider 提供一套缓存语义.
+type CacheProvider interface {
 	// Get 获取指定缓存值。
 	//  @key: cache key
 	//  @value: receive value

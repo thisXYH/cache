@@ -17,7 +17,7 @@ type RedisCacheProvider struct {
 }
 
 var (
-	_ ICacheProvider = (*RedisCacheProvider)(nil)
+	_ CacheProvider = (*RedisCacheProvider)(nil)
 )
 
 func NewRedisCacheProvider(cli redis.Cmdable) *RedisCacheProvider {

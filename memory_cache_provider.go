@@ -27,7 +27,7 @@ func NewMemoryCacheProvider(cleanupInterval time.Duration) *MemoryCacheProvider 
 }
 
 var (
-	_ ICacheProvider = (*MemoryCacheProvider)(nil)
+	_ CacheProvider = (*MemoryCacheProvider)(nil)
 )
 
 // implement ICacheProvider.Get

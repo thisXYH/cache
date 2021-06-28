@@ -2,7 +2,6 @@ package cache
 
 import (
 	"fmt"
-	"math/rand"
 	"reflect"
 	"strconv"
 	"strings"
@@ -14,8 +13,8 @@ const (
 	nilKeyString = "@.nil.@*"
 )
 
-// CacheOperation 缓存操作对象。
-type CacheOperation struct {
+// Operation 缓存操作对象。
+type Operation struct {
 	// 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]
 	cacheNamespace string
 
@@ -23,24 +22,21 @@ type CacheOperation struct {
 	keyBase string
 
 	// cacheProvider 缓存提供者
-	cacheProvider ICacheProvider
+	cacheProvider CacheProvider
 
-	// expireTime 过期时长。
-	expireTime time.Duration
-
-	// 过期时间随机量。
-	randomRangeTime time.Duration
+	// 过期时间。
+	expireTime *ExpireTime
 
 	// [:unique flag] 部分的拼接元素的个数。
 	// 不支持的拼接类型：Complex64, Complex128, Array, Chan, Func ,Interface, Map, Slice, Struct, UnsafePointer
 	uniqueFlagLen int
 }
 
-// NewCacheOperation 创建一个缓存操作对象,
+// NewOperation 创建一个缓存操作对象,
 // 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]
-// expireTime : 过期时长， 0表不过期。
+// expireTime : 过期时长， nil或者CacheExpirationZero 表不过期。
 // uniqueFlagLen : 指定用来拼接[:unique flag]部分的元素个数。
-func NewCacheOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider ICacheProvider, expireTime time.Duration, randomRangeTime time.Duration) *CacheOperation {
+func NewOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider CacheProvider, expireTime *ExpireTime) *Operation {
 	if cacheNamespace == "" || keyPrefix == "" {
 		panic(fmt.Errorf(`neither 'cacheNamespace' nor 'keyPrefix' can be zero value`))
 	}
@@ -53,38 +49,24 @@ func NewCacheOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cach
 		panic(fmt.Errorf(`'uniqueFlagLen' must not be letter than 0`))
 	}
 
-	if expireTime < 0 || randomRangeTime < 0 {
-		panic(fmt.Errorf(`'expireTime' and 'randomRangeTime' must not be letter than 0`))
-	}
-
-	if expireTime < randomRangeTime {
-		panic(fmt.Errorf(`'expireTime' must not be letter than 'randomRangeTime'`))
-	}
-
-	cp := &CacheOperation{}
+	cp := &Operation{}
 	cp.cacheNamespace = cacheNamespace
 	cp.keyBase = cacheNamespace + ":" + keyPrefix
 	cp.cacheProvider = cacheProvider
-	cp.expireTime = expireTime
-	cp.randomRangeTime = randomRangeTime
+
+	if expireTime == nil {
+		cp.expireTime = CacheExpirationZero
+	} else {
+		cp.expireTime = expireTime
+	}
+
 	cp.uniqueFlagLen = uniqueFlagLen
 
 	return cp
 }
 
-func (c *CacheOperation) nextExpireTime() time.Duration {
-	if c.expireTime == NoExpiration {
-		return NoExpiration
-	}
-	if rand.Int31n(2) == 0 {
-		return time.Duration(int64(c.expireTime) - rand.Int63n(int64(c.randomRangeTime)))
-	} else {
-		return time.Duration(int64(c.expireTime) + rand.Int63n(int64(c.randomRangeTime)))
-	}
-}
-
 // Key 获取指定key的缓存操作对象。
-func (c *CacheOperation) Key(keys ...interface{}) *KeyOperation {
+func (c *Operation) Key(keys ...interface{}) *KeyOperation {
 	if len(keys) != c.uniqueFlagLen {
 		panic(fmt.Errorf("param 'keys' len(%d)  != uniqueFlagLen(%d)", len(keys), c.uniqueFlagLen))
 	}
@@ -96,7 +78,7 @@ func (c *CacheOperation) Key(keys ...interface{}) *KeyOperation {
 }
 
 // buildCacheKey 构建缓存key。
-func (c *CacheOperation) buildCacheKey(keys ...interface{}) string {
+func (c *Operation) buildCacheKey(keys ...interface{}) string {
 	if len(keys) == 0 {
 		return c.keyBase // key：没有 [:unique flag]
 	}
@@ -124,7 +106,7 @@ func (c *CacheOperation) buildCacheKey(keys ...interface{}) string {
 		Struct
 		UnsafePointer
 */
-func (c *CacheOperation) oneKeyToStr(v interface{}) string {
+func (c *Operation) oneKeyToStr(v interface{}) string {
 	v = c.indirect(v)
 	if v == nil { //空值替代。
 		return nilKeyString
@@ -179,7 +161,7 @@ func (c *CacheOperation) oneKeyToStr(v interface{}) string {
 }
 
 // indirect 移除间接引用。
-func (*CacheOperation) indirect(a interface{}) interface{} {
+func (*Operation) indirect(a interface{}) interface{} {
 	if a == nil {
 		return nil
 	}

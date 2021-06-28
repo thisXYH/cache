@@ -2,10 +2,9 @@ package cache
 
 import (
 	"testing"
-	"time"
 )
 
-var cacheOp = NewCacheOperation("go", "cache:test", 2, redisCp, 5*time.Minute, 1*time.Minute)
+var cacheOp = NewOperation("go", "cache:test", 2, redisCp, NewExpireTimeFromMinute(5, 2))
 
 func TestKeyOp(t *testing.T) {
 
