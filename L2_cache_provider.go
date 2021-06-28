@@ -12,16 +12,16 @@ import (
 // 当一级获取不到，将从二级获取（一般来说，一级回收间隔更短），
 // 并且根据二级缓存更新一级缓存。
 type L2CacheProvider struct {
-	level1 ICacheProvider // 一级缓存
-	level2 ICacheProvider // 二级缓存
+	level1 CacheProvider // 一级缓存
+	level2 CacheProvider // 二级缓存
 
 	// expireTime 一级缓存的过期时间，
 	// 其他Api的缓存时间为二级缓存的缓存时间，
 	// 要求二级缓存的过期时间 > 一级缓存。
-	expireTime *CacheExpiration
+	expireTime *ExpireTime
 }
 
-func NewL2CacheProvider(l1, l2 ICacheProvider, expireTime *CacheExpiration) *L2CacheProvider {
+func NewL2CacheProvider(l1, l2 CacheProvider, expireTime *ExpireTime) *L2CacheProvider {
 	if expireTime == nil {
 		panic(fmt.Errorf("'expireTime' must not be nil"))
 	}
