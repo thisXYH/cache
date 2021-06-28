@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"cache/conv"
+	"cache/internal"
 	"fmt"
 	"reflect"
 	"sync"
@@ -71,7 +71,7 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (succ bool, err err
 		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
 		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
 		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128:
-		temp, err = conv.Convert(v, rv.Type())
+		temp, err = internal.Convert(v, rv.Type())
 		if err != nil {
 			return false, nil
 		}
