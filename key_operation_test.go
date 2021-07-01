@@ -25,6 +25,7 @@ func ExampleKeyOperation() {
 
 	// 获取完整缓存key
 	// fmt.Println(key.Key)
+	// output: go:cache:test_1625123485000_1
 
 	key.Set("hellow word!")
 
