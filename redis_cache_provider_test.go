@@ -16,7 +16,7 @@ import (
 )
 
 // 指定测试顺序。
-func TestOrderBy(t *testing.T) {
+func TestRedisCacheProvider_Order(t *testing.T) {
 	// new
 	t.Run("New", TestNewRedisCacheProvider)
 
