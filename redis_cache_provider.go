@@ -42,6 +42,10 @@ func (cli *RedisCacheProvider) MustGet(key string, value any) {
 
 // implement ICacheProvider.TryGet
 func (cli *RedisCacheProvider) TryGet(key string, value any) (bool, error) {
+	if key == "" {
+		return false, fmt.Errorf("key must be not empty")
+	}
+
 	cmd := cli.client.Get(context.Background(), key)
 	v, err := cmd.Result()
 	if err != nil {
@@ -60,6 +64,10 @@ func (cli *RedisCacheProvider) TryGet(key string, value any) (bool, error) {
 
 // implement ICacheProvider.Create
 func (cli *RedisCacheProvider) Create(key string, value any, t time.Duration) (bool, error) {
+	if key == "" {
+		return false, fmt.Errorf("key must be not empty")
+	}
+
 	v, err := json.Marshal(value)
 	if err != nil {
 		return false, err
@@ -80,6 +88,10 @@ func (cli *RedisCacheProvider) MustCreate(key string, value any, t time.Duration
 
 // implement ICacheProvider.Set
 func (cli *RedisCacheProvider) Set(key string, value any, t time.Duration) error {
+	if key == "" {
+		return fmt.Errorf("key must be not empty")
+	}
+
 	v, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -108,6 +120,10 @@ func (cli *RedisCacheProvider) MustSet(key string, value any, t time.Duration) {
 
 // implement ICacheProvider.Remove
 func (cli *RedisCacheProvider) Remove(key string) (bool, error) {
+	if key == "" {
+		return false, fmt.Errorf("key must be not empty")
+	}
+
 	cmd := cli.client.Del(context.Background(), key)
 	v, err := cmd.Result()
 	if err != nil {
@@ -131,6 +147,10 @@ func (cli *RedisCacheProvider) MustRemove(key string) bool {
 
 // implement ICacheProvider.Increase
 func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
+	if key == "" {
+		return 0, fmt.Errorf("key must be not empty")
+	}
+
 	const MaxRetries = 3 //最大重试次数。
 
 	var value int64 = 0
@@ -187,6 +207,10 @@ func (cli *RedisCacheProvider) MustIncrease(key string) int64 {
 
 // implement ICacheProvider.IncreaseOrCreate
 func (cli *RedisCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
+	if key == "" {
+		return 0, fmt.Errorf("key must be not empty")
+	}
+
 	cmd := cli.client.IncrBy(context.Background(), key, increment)
 	v, err := cmd.Result()
 	if err != nil {
