@@ -1,11 +1,12 @@
 package cache
 
 import (
-	"cache/internal"
 	"fmt"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/thisXYH/cache/internal"
 
 	c "github.com/patrickmn/go-cache"
 )

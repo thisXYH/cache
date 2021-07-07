@@ -1,11 +1,12 @@
 package cache
 
 import (
-	"cache/internal"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/thisXYH/cache/internal"
 )
 
 // Operation 缓存操作对象。

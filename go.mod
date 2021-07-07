@@ -1,4 +1,4 @@
-module cache
+module github.com/thisXYH/cache
 
 go 1.16
 
