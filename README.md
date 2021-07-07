@@ -7,7 +7,7 @@
 * 缓存提供器
     * [X] Redis缓存
     * [X] memory缓存
-    * [X] 二级缓存
+    * [X] 二级缓存, 不支持Increase。
 
 ## Usage
 ````Go
@@ -21,7 +21,7 @@ func ExampleKeyOperation() {
 	cacheOp := NewOperation(
 		"go", "cache:test", 2,
 		NewMemoryCacheProvider(1*time.Minute),
-		NewExpireTimeFromMinute(10, 2))
+		NewExpirationFromMinute(10, 2))
 
 	// 获取 key 操作对象
 	// 这个对象中包含了组装好的完整换缓存key，
@@ -30,15 +30,24 @@ func ExampleKeyOperation() {
 	key := cacheOp.Key(time.Now(), true)
 
 	// 获取完整缓存key
-	// fmt.Println(key.Key)
+	// log.Println(key.Key)
+	// output: go:cache:test_1625123485000_1
 
 	key.Set("hellow word!")
 
 	var value string
 	key.Get(&value)
 
-	fmt.Println(value)
+	log.Println(value)
 	// output: hellow word!
+
+	// 支持基础类型互转，存进去一个 int8  用 int 去接。
+	key.Set(int(8))
+	var intV int
+	key.Get(&intV)
+
+	log.Println(intV)
+	// output: 8
 }
 ````
 
