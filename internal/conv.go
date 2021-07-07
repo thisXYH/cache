@@ -1,3 +1,4 @@
+// Package conv provides a group of functions to convert between primitive types, maps, slices and structs.
 package internal
 
 import (
@@ -6,12 +7,18 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 	"unsafe"
 )
 
 const (
-	// 若将字符串转换为 slice ，字符串会使用此符号切割为多个元素。
-	StringSliceDelimiter = "~"
+	// StringSliceSep is used by SplitString() as the separator.
+	StringSliceSep = "~"
+)
+
+var (
+	intSize = int(unsafe.Sizeof(0)) * 8 // How many bits is an int.
+	typTime = reflect.TypeOf(time.Time{})
 )
 
 var primitiveTypes = map[reflect.Kind]bool{
@@ -33,41 +40,125 @@ var primitiveTypes = map[reflect.Kind]bool{
 	reflect.String:     false,
 }
 
-// 一个 int 在当前系统占多少位。
-var intSize = int(unsafe.Sizeof(0)) * 8
-
-// IsPrimitiveType 判断给定的类型是否是基础类型，基础类型包括所有的数值类型及字符串。
-func IsPrimitiveType(k reflect.Kind) bool {
+// IsPrimitiveKind returns true if the given Kind is bool/int*/uint*/float*/complex*/string .
+func IsPrimitiveKind(k reflect.Kind) bool {
 	_, ok := primitiveTypes[k]
 	return ok
 }
 
-func canBeNil(k reflect.Kind) bool {
-	return k == reflect.Map || k == reflect.Slice || k == reflect.Ptr
+// IsPrimitiveType returns true if the given type is bool/int*/uint*/float*/complex*/string .
+func IsPrimitiveType(t reflect.Type) bool {
+	return t != nil && IsPrimitiveKind(t.Kind())
 }
 
-// ConvertStringToSlice 将字符串转换为 slice ，元素必须是基础类型，其通过 StringToPrimitive() 转换。
-// 若字符串包含字符 StringSliceDelimiter (~) ，将根据此分隔符切割为多个元素。
-// 若目标类型不是基础类型的 slice ，则 panic(error)。
-func ConvertStringToSlice(v string, primitiveSliceType reflect.Type) (interface{}, error) {
+// IsSimpleType returns true if the given type IsPrimitiveType() or is time.Time .
+func IsSimpleType(t reflect.Type) bool {
+	return t != nil && (IsPrimitiveType(t) || t == typTime)
+}
+
+// Conv provides a group of functions to convert between primitive types, time.Time, maps, slices and structs.
+// A new instance with default values has default conversion behavior.
+//   Conv{}.ConvertType(...)
+//
+// Don't call functions that does not start with 'Convert' directly, they are for configuration and are called internally
+// by other functions with names which start with 'Convert', such as Convert()/ConvertType()/ConvertStringToSlice() .
+//
+type Conv struct {
+	// SplitString is the function used to split the string into elements of the slice, when converting a string to a slice.
+	// Set this field if need to customize the procedure.
+	// If this field is nil, the function DefaultSplitString() will be used.
+	SplitString func(v string) []string
+
+	// NameIndexer is the function used to match names when converting from map to struct or from struct to struct.
+	// If the given name is match, the function returns the value from the source map with @ok=true;
+	// otherwise returns (nil, false) .
+	// If it returns OK, the value from the source map will be converted into the destination struct
+	// using Conv.ConvertType() .
+	//
+	// When converting a map to a struct, each field name of the struct will be indexed using this function.
+	// When converting a struct to another, field names and values from the souce struct will be put into a map,
+	// then each field name of the destination struct will be indexed with the map.
+	//
+	// If this function is nil, the Go built-in indexer for maps will be used.
+	// The build-in indexer is like:
+	//   v, ok := m[name]
+	//
+	// If a case-insensitive indexer is needed, use the CaseInsensitiveNameIndexer function.
+	//
+	NameIndexer func(m map[string]interface{}, name string) (v interface{}, ok bool)
+
+	// TimeToString formats the given time.
+	// Set this field if need to customize the procedure.
+	// If this field is nil, the function DefaultTimeToString() will be used.
+	TimeToString func(t time.Time) (string, error)
+
+	// StringToTime parses the given string and returns the time it represends.
+	// Set this field if need to customize the procedure.
+	// If this field is nil, the function DefaultStringToTime() will be used.
+	StringToTime func(v string) (time.Time, error)
+}
+
+// DefaultSplitString spilit a string by '~'. This is the default value for Conv.SplitString() when it is nil.
+func DefaultSplitString(v string) []string {
+	return strings.Split(v, StringSliceSep)
+}
+
+// DefaultTimeToString formats time using the time.RFC3339 format.
+func DefaultTimeToString(t time.Time) (string, error) {
+	return t.Format(time.RFC3339), nil
+}
+
+// DefaultStringToTime parses the time using the time.RFC3339Nano format.
+func DefaultStringToTime(v string) (time.Time, error) {
+	return time.Parse(time.RFC3339Nano, v)
+}
+
+// CaseInsensitiveNameIndexer indexes a map and compares the keys case-insensitively.
+// It compares keys with strings.EqualFold() , and returns on the first key for which EqualFold() is true.
+func CaseInsensitiveNameIndexer(m map[string]interface{}, key string) (value interface{}, ok bool) {
+	// No build-in method to index a map case-insensitively, we just iterate all keys.
+	for k, v := range m {
+		if strings.EqualFold(key, k) {
+			value = v
+			ok = true
+			return
+		}
+	}
+
+	return
+}
+
+// ConvertStringToSlice converts a string to a slice.
+// The elements of the slice must be simple type, for which IsSimpleType() returns true.
+//
+// Conv.SplitString() is used to split the string.
+//
+func (c Conv) ConvertStringToSlice(v string, simpleSliceType reflect.Type) (interface{}, error) {
 	const fnName = "ConvertStringToSlice"
 
-	if primitiveSliceType.Kind() != reflect.Slice {
-		panic(fmt.Errorf("the destiniation type must be a slice of a primitive, got %v", primitiveSliceType))
+	if simpleSliceType.Kind() != reflect.Slice {
+		return nil, buildError(fnName, "the destiniation type must be slice, got %v", simpleSliceType)
 	}
 
-	elemKind := primitiveSliceType.Elem().Kind()
-	if !IsPrimitiveType(elemKind) {
-		panic(fmt.Errorf("cannot convert from string to %v, the element's type must be primitive", primitiveSliceType))
+	elemTyp := simpleSliceType.Elem()
+	if !IsSimpleType(elemTyp) {
+		return nil, buildError(fnName, "cannot convert from string to %v, the element's type must be a simple type", simpleSliceType)
 	}
 
-	parts := strings.Split(v, StringSliceDelimiter)
-	dst := reflect.MakeSlice(primitiveSliceType, 0, len(parts))
+	var parts []string
+	if c.SplitString == nil {
+		parts = DefaultSplitString(v)
+	} else {
+		parts = c.SplitString(v)
+	}
 
-	for elemIdx, elemIn := range parts {
-		elemOut, err := ConvertStringToPrimitive(elemIn, elemKind)
+	dst := reflect.MakeSlice(simpleSliceType, 0, len(parts))
+	elemKind := elemTyp.Kind()
+
+	for i, elemIn := range parts {
+		elemOut, err := c.ConvertStringToPrimitive(elemIn, elemKind)
 		if err != nil {
-			return nil, buildError(fnName, "cannot convert to %v, at index %v : %v", primitiveSliceType, elemIdx, err.Error())
+			return nil, buildError(fnName, "cannot convert to %v, at index %v: %v", simpleSliceType, i, err)
 		}
 
 		dst = reflect.Append(dst, reflect.ValueOf(elemOut))
@@ -76,14 +167,14 @@ func ConvertStringToSlice(v string, primitiveSliceType reflect.Type) (interface{
 	return dst.Interface(), nil
 }
 
-// ConverToBool 尝试将给定值转换为 bool 。
+// ConverToBool converts the value to bool.
 //
-// 规则如下：
-// 数值型：0 转为 false ，其余转为 true ；
-// 字符串：同 strconv.ParseBool() ；
-// nil 转为 false 。
-// 其他情况返回 false, error 。
-func ConverToBool(v interface{}) (bool, error) {
+// Rules:
+// nil: as false;
+// numbers/time.Time: zero as false, non-zero as true;
+// string: same as strconv.ParseBool() ;
+// other values are not supported, the function returns false and an error.
+func (c Conv) ConverToBool(v interface{}) (bool, error) {
 	const fnName = "ConverToBool"
 
 	if v == nil {
@@ -103,7 +194,8 @@ func ConverToBool(v interface{}) (bool, error) {
 
 	case int, int8, int16, int32, int64,
 		uint, uint8, uint16, uint32, uint64,
-		float32, float64, complex64, complex128:
+		float32, float64, complex64, complex128,
+		time.Time:
 		return !reflect.ValueOf(vv).IsZero(), nil
 
 	default:
@@ -111,10 +203,14 @@ func ConverToBool(v interface{}) (bool, error) {
 	}
 }
 
-// ConvertStringToPrimitive 将字符串转为指定的基础类型。
-// 若目标类型不是基础类型，则 panic(error) 。
-func ConvertStringToPrimitive(v string, dstKind reflect.Kind) (interface{}, error) {
+// ConvertStringToPrimitive converts a string to a primitive type (which IsPrimitiveType() returns true).
+func (c Conv) ConvertStringToPrimitive(v string, dstKind reflect.Kind) (interface{}, error) {
+	const fnName = "ConvertStringToPrimitive"
+
 	switch dstKind {
+	default:
+		return nil, buildError(fnName, "%v is not a primitive type", dstKind)
+
 	case reflect.Bool:
 		return strconv.ParseBool(v)
 
@@ -172,29 +268,39 @@ func ConvertStringToPrimitive(v string, dstKind reflect.Kind) (interface{}, erro
 
 	case reflect.String:
 		return v, nil
-
-	default:
-		// 调用此方法必须给定基础类型。
-		panic(fmt.Errorf("%v is not a primitive type", dstKind))
 	}
 }
 
-// ConvertPrimitiveToString 获取给定的基础类型值的字符串形势。
-// 若给定值不止基础类型，或给定值为 nil ，则 panic(error)。
-// 特别的， bool 会转为字符串的 0/1 而不是 true/false ，以提高转换为其他数值的兼容性； nil 转为空字符串。
-func ConvertPrimitiveToString(v interface{}) (string, error) {
+// ConvertSimpleToString converts the given value to a string.
+// The value must be a simple type, for which IsSimpleType() returns true.
+//
+// Conv.StringToTime() is used to format times.
+// Specially, booleans are converted to 0/1, not the default foramt true/false.
+func (c Conv) ConvertSimpleToString(v interface{}) (string, error) {
+	const fnName = "ConvertSimpleToString"
+
 	if v == nil {
-		return "", nil
+		return "", sourceShouldNotBeNilError(fnName)
 	}
 
-	k := reflect.TypeOf(v).Kind()
-	if !IsPrimitiveType(k) {
-		panic(fmt.Errorf("cannot convert %v to any primitive value", k))
+	t := reflect.TypeOf(v)
+	if t == typTime {
+		if c.TimeToString == nil {
+			return DefaultTimeToString(v.(time.Time))
+		}
+
+		return c.TimeToString(v.(time.Time))
+	}
+
+	k := t.Kind()
+	if !IsPrimitiveKind(k) {
+		return "", buildError(fnName, "cannot convert %v to any primitive value", k)
 	}
 
 	switch k {
 	case reflect.Bool:
-		// bool 默认字符串为 true/false ，不便于与数字间的转换，改用 0/1 处理。
+		// The default string representation for bools are true/false, which is not compatiable
+		// to other number types. To increase compatibility, we use 0/1 instead.
 		if v.(bool) {
 			return "1", nil
 		} else {
@@ -205,24 +311,28 @@ func ConvertPrimitiveToString(v interface{}) (string, error) {
 		return v.(string), nil
 
 	default:
-		// 其余基础类型直接“偷懒”，利用 fmt 完成。
+		// Use the default formats for other types.
 		return fmt.Sprint(v), nil
 	}
 }
 
-// ConvertSliceToSlice 将一个 slice 转到另一个 slice ，对每个元素使用 Convert 方法。
-// 若给定值或目标类型不是 slice ，则 panic(error)。
-func ConvertSliceToSlice(src interface{}, dstSliceTyp reflect.Type) (interface{}, error) {
+// ConvertSliceToSlice converts a slice to another slice.
+// Each element will be converted using Conv.ConvertType() .
+// If the source value is nil, returns nil and an error.
+func (c Conv) ConvertSliceToSlice(src interface{}, dstSliceTyp reflect.Type) (interface{}, error) {
 	const fnName = "ConvertSliceToSlice"
 
-	vsrcSlice := reflect.ValueOf(src)
+	if src == nil {
+		return nil, sourceShouldNotBeNilError(fnName)
+	}
 
+	vsrcSlice := reflect.ValueOf(src)
 	if vsrcSlice.Kind() != reflect.Slice {
-		panic(fmt.Errorf("src must be a slice, got %v", vsrcSlice.Kind()))
+		return nil, buildError(fnName, "src must be a slice, got %v", vsrcSlice.Kind())
 	}
 
 	if dstSliceTyp.Kind() != reflect.Slice {
-		panic(fmt.Errorf("the destination type must be a slice, got %v", dstSliceTyp.Kind()))
+		return nil, buildError(fnName, "the destination type must be slice, got %v", dstSliceTyp.Kind())
 	}
 
 	srcLen := vsrcSlice.Len()
@@ -231,8 +341,8 @@ func ConvertSliceToSlice(src interface{}, dstSliceTyp reflect.Type) (interface{}
 
 	for i := 0; i < srcLen; i++ {
 		vsrcElem := vsrcSlice.Index(i)
-
-		vdstElem, err := Convert(vsrcElem.Interface(), dstElemTyp)
+		srcElmen := vsrcElem.Interface()
+		vdstElem, err := c.ConvertType(srcElmen, dstElemTyp)
 		if err != nil {
 			return nil, buildError(fnName, "cannot convert to %v, at index %v : %v", dstSliceTyp, i, err.Error())
 		}
@@ -243,52 +353,78 @@ func ConvertSliceToSlice(src interface{}, dstSliceTyp reflect.Type) (interface{}
 	return vdstSlice.Interface(), nil
 }
 
-// ConvertMapToStruct 通过给定的 map[string]interface{} 创建 struct ，map 的 key 若与 stuct 的字段同名，则会进行赋值。
-// 赋值前使用 Convert 方法转换。
-// 若目标类型不是 struct ，则 panic(error)。
-func ConvertMapToStruct(m map[string]interface{}, typ reflect.Type) (interface{}, error) {
+// ConvertMapToStruct converts a map[string]interface{} to a struct.
+//
+// Each exported field of the struct is indexed from the map by name using Conv.NameIndexer() , if the name exists,
+// the corresponding value is converted using Conv.ConvertType() .
+//
+func (c Conv) ConvertMapToStruct(m map[string]interface{}, typ reflect.Type) (interface{}, error) {
 	const fnName = "ConvertMapToStruct"
+
+	if m == nil {
+		return nil, sourceShouldNotBeNilError(fnName)
+	}
 
 	k := typ.Kind()
 	if k != reflect.Struct {
-		panic(fmt.Errorf("the destination type must be stuct, got %v", typ))
+		return nil, buildError(fnName, "the destination type must be stuct, got %v", typ)
 	}
 
-	dst := reflect.New(typ)
+	dst := reflect.New(typ).Elem()
 
 	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
 
-		v, ok := m[f.Name]
+		v, ok := c.indexNameFromMap(m, f.Name)
 		if !ok {
-			// 字段没出现就不用赋值了。
 			continue
 		}
 
-		fv, err := Convert(v, f.Type)
+		// Ignore all unexported fields, they can't be set.
+		dstF := dst.Field(i)
+		if !dstF.CanSet() {
+			continue
+		}
+
+		fv, err := c.ConvertType(v, f.Type)
 		if err != nil {
 			return nil, buildError(fnName, "error on converting field '%v': %v", f.Name, err.Error())
 		}
 
-		dst.Field(i).Elem().Set(reflect.ValueOf(fv))
+		dstF.Set(reflect.ValueOf(fv))
 	}
 
-	return dst, nil
+	return dst.Interface(), nil
 }
 
-// ConvertMapToMap 通过给定的 map 创建目标 map 。 key 和 value 的转换都使用 Convert 方法。
-// 若给定 map 为 nil ，返回 nil 。
-// 若目标类型不是 map ，则 panic(error)。
-func ConvertMapToMap(m interface{}, typ reflect.Type) (interface{}, error) {
+func (c Conv) indexNameFromMap(m map[string]interface{}, k string) (interface{}, bool) {
+	if c.NameIndexer == nil {
+		v, ok := m[k]
+		return v, ok
+	}
+
+	return c.NameIndexer(m, k)
+}
+
+// ConvertMapToMap converts a map to another map.
+// If the source value is nil, the function returns a nil map of the destination type without any error.
+//
+// All keys and values in the map are converted using Conv.ConvertType() .
+//
+func (c Conv) ConvertMapToMap(m interface{}, typ reflect.Type) (interface{}, error) {
 	const fnName = "ConvertMapToMap"
 
 	src := reflect.ValueOf(m)
 	if src.Kind() != reflect.Map {
-		panic(fmt.Errorf("the given value type must be a map, got %v", src.Kind()))
+		return nil, buildError(fnName, "the given value type must be a map, got %v", src.Kind())
 	}
 
 	if typ.Kind() != reflect.Map {
-		panic(fmt.Errorf("the destination type must be map, got %v", typ))
+		return nil, buildError(fnName, "the destination type must be map, got %v", typ)
+	}
+
+	if src.IsNil() {
+		return reflect.Zero(typ).Interface(), nil
 	}
 
 	dst := reflect.MakeMap(typ)
@@ -298,73 +434,379 @@ func ConvertMapToMap(m interface{}, typ reflect.Type) (interface{}, error) {
 
 	for iter.Next() {
 		srcKey := iter.Key().Interface()
-		dstKey, err := Convert(srcKey, dstKeyType)
+		dstKey, err := c.ConvertType(srcKey, dstKeyType)
 		if err != nil {
-			return nil, buildError(fnName, "cannnot covert key '%v': %v", srcKey, err.Error())
+			return nil, buildError(fnName, "cannnot covert key '%v' to %v: %v", srcKey, dstKeyType, err.Error())
 		}
 
 		srcVal := iter.Value().Interface()
-		dstVal, err := Convert(srcVal, dstValueType)
+		dstVal, err := c.ConvertType(srcVal, dstValueType)
 		if err != nil {
-			return nil, buildError(fnName, "cannnot covert value of key '%v': %v", srcKey, err.Error())
+			return nil, buildError(fnName, "cannnot covert value of key '%v' to %v: %v", srcKey, dstValueType, err.Error())
 		}
 
 		dst.SetMapIndex(reflect.ValueOf(dstKey), reflect.ValueOf(dstVal))
 	}
 
-	return dst, nil
+	return dst.Interface(), nil
 }
 
-// string      -> primitive/[]primitive
-// primitive   -> primitive
-// map[any]any -> map[any]any any->any 必须满足对应类型的转换条件。
-// []any       -> []any 对于每个元素 any->Convert(any)。
-// struct      -> map[string]any/struct
-func Convert(v interface{}, typ reflect.Type) (interface{}, error) {
-	const fnConvert = "Convert"
+// ConvertStructToMap is like json.Unmashal(json.Marshal(v), &someMap) . It converts a struct to map[string]interface{} .
+//
+// Each value of exported field will be processed recursively with an internal function f() , which:
+//  - Simple types (which IsSimpleType() returns true) will be cloned into the map directly.
+//  - Slices:
+//    - A nil/empty slices is converted to an empty slice with cap=0.
+//    - A non-empty slice is converted to another slice, each element is process with f() , all elements must be the same type.
+//  - Maps:
+//    - A nil map are converted to nil of map[string]interface{} .
+//    - A non-nil map is converted to map[string]interface{} , keys are processed with Conv.ConvertType() , values with f() .
+//  - Structs are converted to map[string]interface{} using Conv.ConvertStructToMap() .
+//  - For pointers, the values pointed to are converted with f() .
+// Other types not listed are not supported and will result in an error.
+//
+func (c Conv) ConvertStructToMap(v interface{}) (map[string]interface{}, error) {
+	const fnName = "ConvertStructToMap"
 
-	dstKind := typ.Kind()
-	if v == nil && canBeNil(dstKind) {
-		return nil, nil
+	if v == nil {
+		return nil, sourceShouldNotBeNilError(fnName)
 	}
 
-	isPtr := dstKind == reflect.Ptr
-	if isPtr {
-		typ = typ.Elem()
+	srcType := reflect.TypeOf(v)
+	if srcType.Kind() != reflect.Struct {
+		return nil, buildError(fnName, "the given value must be a struct, got %v", srcType)
 	}
 
-	dst, err := doConvert(v, typ)
-	if err != nil {
-		return nil, buildError(fnConvert, err.Error())
+	src := reflect.ValueOf(v)
+	dst := reflect.MakeMap(reflect.TypeOf(map[string]interface{}(nil)))
+
+	for i := 0; i < src.NumField(); i++ {
+		fieldValue := src.Field(i)
+
+		// Ignore unexported fields.
+		if !fieldValue.CanInterface() {
+			continue
+		}
+
+		fieldName := srcType.Field(i).Name
+		ff, err := c.convertToMapValue(fieldValue)
+
+		if err != nil {
+			return nil, buildError(fnName, "error on converting field %v: %v", fieldName, err.Error())
+		}
+
+		dst.SetMapIndex(reflect.ValueOf(fieldName), ff)
 	}
 
-	if isPtr {
-		dst = &dst
-	}
-
-	return dst, nil
+	return dst.Interface().(map[string]interface{}), nil
 }
 
-func doConvert(v interface{}, typ reflect.Type) (interface{}, error) {
+func (c Conv) convertToMapValue(fv reflect.Value) (reflect.Value, error) {
+	for fv.Kind() == reflect.Ptr && !fv.IsNil() {
+		fv = fv.Elem()
+	}
+
+	switch fv.Kind() {
+	case reflect.Struct:
+		v, err := c.ConvertStructToMap(fv.Interface())
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		return reflect.ValueOf(v), nil
+
+	case reflect.Slice:
+		var newSlice reflect.Value
+
+		switch {
+		case fv.IsNil() || fv.Len() == 0:
+			ft := fv.Type()
+			sliceType, ok := c.dertermineSliceTypeForMapValue(ft)
+			if !ok {
+				return reflect.Value{}, fmt.Errorf("cannot convert %v", fv.Type())
+			}
+
+			newSlice = reflect.MakeSlice(sliceType, 0, 0)
+
+		default:
+			for i := 0; i < fv.Len(); i++ {
+				oldVal := fv.Index(i)
+				newVal, err := c.convertToMapValue(oldVal)
+				if err != nil {
+					return reflect.Value{}, fmt.Errorf("index %v: %v", i, err.Error())
+				}
+
+				// Lazy initialization. The slice type depends on the type of the first element.
+				if i == 0 {
+					newSlice = reflect.MakeSlice(reflect.SliceOf(newVal.Type()), 0, fv.Len())
+				}
+
+				newSlice = reflect.Append(newSlice, newVal)
+			}
+		}
+
+		return newSlice, nil
+
+	case reflect.Map:
+		newMap := reflect.MakeMap(reflect.TypeOf(map[string]interface{}(nil)))
+		iter := fv.MapRange()
+		for iter.Next() {
+			oldKey := iter.Key()
+			oldVal := iter.Value()
+
+			var newKey string
+			err := c.Convert(oldKey.Interface(), &newKey)
+			if err != nil {
+				return reflect.Value{}, fmt.Errorf("key %v: %v", oldKey, err.Error())
+			}
+
+			newVal, err := c.convertToMapValue(oldVal)
+			if err != nil {
+				return reflect.Value{}, fmt.Errorf("value of key %v: %v", newKey, err.Error())
+			}
+
+			newMap.SetMapIndex(reflect.ValueOf(newKey), newVal)
+		}
+		return newMap, nil
+
+	case reflect.Interface:
+		// Extract the underlying value.
+		v := fv.Interface()
+		if v == nil {
+			return reflect.ValueOf(nil), nil
+		}
+
+		fv = reflect.ValueOf(v)
+		return c.convertToMapValue(fv)
+
+	default:
+		if !IsSimpleType(fv.Type()) {
+			return reflect.Value{}, fmt.Errorf("must be a simple type, got %v", fv.Kind())
+		}
+		return fv, nil
+	}
+}
+
+func (c Conv) dertermineSliceTypeForMapValue(srcSliceType reflect.Type) (dstSliceType reflect.Type, ok bool) {
+	elemType := srcSliceType.Elem()
+	if IsSimpleType(elemType) {
+		dstSliceType = srcSliceType
+		ok = true
+		return
+	}
+
+	elemKind := elemType.Kind()
+	switch elemKind {
+	case reflect.Map, reflect.Struct:
+		dstSliceType = reflect.SliceOf(reflect.TypeOf(map[string]interface{}(nil)))
+		ok = true
+		return
+
+	case reflect.Slice:
+		innerSliceType, innerOK := c.dertermineSliceTypeForMapValue(elemType)
+		if !innerOK {
+			return
+		}
+
+		dstSliceType = reflect.SliceOf(innerSliceType)
+		ok = true
+		return
+
+	default:
+		ok = false
+		return
+	}
+}
+
+// ConvertStructToStruct converts a struct to another.
+// If the given value is nil, returns nil and an error.
+//
+// When converting, all fields of the source struct is to be stored in a map[string]interface{} ,
+// then each field of the destination struct is indexed from the map by name using Conv.NameIndexer() ,
+// if the name exists, the value is converted using Conv.ConvertType() .
+//
+// This function can be used to deep-clone a struct.
+//
+func (c Conv) ConvertStructToStruct(v interface{}, typ reflect.Type) (interface{}, error) {
+	const fnName = "ConvertStructToStruct"
+
+	if v == nil {
+		return nil, sourceShouldNotBeNilError(fnName)
+	}
+
 	dstKind := typ.Kind()
-	if IsPrimitiveType(dstKind) {
-		return convertPrimitiveToPrimitive(v, dstKind)
+	if dstKind != reflect.Struct {
+		return nil, buildError(fnName, "the destination type must be struct, got %v", dstKind)
 	}
 
 	srcTyp := reflect.TypeOf(v)
-	srcKind := srcTyp.Kind()
+	if srcTyp.Kind() != reflect.Struct {
+		return nil, buildError(fnName, "the given value must be a struct, got %v", srcTyp)
+	}
 
-	// map[key]value
-	if srcKind == reflect.Map {
+	m := make(map[string]interface{})
+	src := reflect.ValueOf(v)
+	for i := 0; i < src.NumField(); i++ {
+		f := src.Field(i)
+		if !f.CanInterface() {
+			continue
+		}
+
+		fName := srcTyp.Field(i).Name
+		m[fName] = f.Interface()
+	}
+
+	dst := reflect.New(typ).Elem()
+	for i := 0; i < dst.NumField(); i++ {
+		fType := typ.Field(i)
+		v, ok := c.indexNameFromMap(m, fType.Name)
+		if !ok {
+			continue
+		}
+
+		f := dst.Field(i)
+		if !f.CanSet() {
+			continue
+		}
+
+		dstValue, err := c.ConvertType(v, fType.Type)
+		if err != nil {
+			return nil, buildError(fnName, "error on converting field %v: %v", fType.Name, err.Error())
+		}
+
+		f.Set(reflect.ValueOf(dstValue))
+	}
+
+	return dst.Interface(), nil
+}
+
+// ConvertType is the core function of Conv . It converts the given value to the destination type.
+//
+// Currently these conversions are supported:
+//   simple         -> simple                 * use Conv.ConvertSimpleToSimple()
+//   string         -> simple                 * use Conv.ConvertStringToPrimitive(), or Conv.StringToTime() for time values.
+//   string         -> []simple               * use Conv.ConvertStringToSlice()
+//   map[string]any -> struct                 * use Conv.ConvertMapToStruct()
+//   map[any]any    -> map[any]any            * use Conv.ConvertMapToMap()
+//   []any          -> []any                  * use Conv.ConvertType() recursively
+//   struct         -> map[string]interface{} * use Conv.ConvertStructToMap()
+//   struct         -> struct                 * use Conv.ConvertStructToStuct()
+// 'any' generally means interface{} .
+//
+// typ can be a type of pointer, the conversion of the underlying type must be supported.
+//
+// This function can be used to deep-clone a struct, e.g.
+//   clone, err := ConvertType(src, reflect.TypeOf(src))
+//
+func (c Conv) ConvertType(v interface{}, typ reflect.Type) (interface{}, error) {
+	const fnName = "ConvertType"
+
+	dstKind := typ.Kind()
+	if v == nil {
+		if canBeNil(dstKind) {
+			return nil, nil
+		}
+
+		return nil, buildError(fnName, "cannot convert nil to %v", typ)
+	}
+
+	// Try to get the underlying type from a pointer type.
+	// It may be a pointer to another pointer...
+	ptrStack := make([]reflect.Type, 0)
+	for typ.Kind() == reflect.Ptr {
+		ptrStack = append(ptrStack, typ)
+		typ = typ.Elem()
+	}
+
+	dst, err := c.convertToNonPtr(v, typ)
+	if err != nil {
+		return nil, buildError(fnName, err.Error())
+	}
+
+	// Convert to pointer if needed.
+	if len(ptrStack) > 0 {
+		var prev, current reflect.Value
+		for i := len(ptrStack) - 1; i >= 0; i-- {
+			if i == len(ptrStack)-1 {
+				prev = reflect.ValueOf(dst)
+			} else {
+				prev = current
+			}
+
+			current = reflect.New(ptrStack[i])
+			current.Elem().Set(prev)
+		}
+
+		dst = current.Interface()
+	}
+
+	return dst, nil
+}
+
+// Convert is like Conv.ConvertType() , but receives a pointer instead of a type.
+// It stores the result in the value pointed to by dst.
+// If dst is not a pointer, the function panics an error.
+func (c Conv) Convert(src interface{}, dst interface{}) error {
+	const fnName = "Convert"
+
+	dstValue := reflect.ValueOf(dst)
+	if dstValue.Kind() != reflect.Ptr {
+		panic(buildError(fnName, "the destination value must be a pointer"))
+	}
+
+	if src == nil {
+		return nil
+	}
+
+	for dstValue.Kind() == reflect.Ptr {
+		dstValue = dstValue.Elem()
+	}
+
+	value, err := c.convertToNonPtr(src, dstValue.Type())
+	if err != nil {
+		return buildError(fnName, err.Error())
+	}
+
+	dstValue.Set(reflect.ValueOf(value))
+	return nil
+}
+
+func (c Conv) convertToNonPtr(v interface{}, dstTyp reflect.Type) (interface{}, error) {
+	srcTyp := reflect.TypeOf(v)
+	srcKind := srcTyp.Kind()
+	dstKind := dstTyp.Kind()
+	if IsPrimitiveKind(srcKind) && IsPrimitiveKind(dstKind) {
+		return c.convertPrimitiveToPrimitive(v, dstKind)
+	}
+
+	if srcTyp == typTime {
+		tm := v.(time.Time)
+
+		switch {
+		case dstTyp == typTime:
+			return tm, nil
+
+		case dstKind == reflect.String:
+			return c.TimeToString(tm)
+
+		case IsPrimitiveKind(dstKind):
+			timestamp := tm.Unix()
+			res, err := c.convertPrimitiveToPrimitive(timestamp, dstKind)
+			if err != nil {
+				return nil, fmt.Errorf("failed on converting timestamp %v to %v: %v", timestamp, dstKind, err.Error())
+			}
+			return res, nil
+		}
+	} else if srcKind == reflect.Map {
 		// map[string]any { "_": value } -> Convert(value)
-		if underlyingValue := tryFlattenEmptyKeyMap(v); underlyingValue != nil {
-			return Convert(underlyingValue, typ)
+		if underlyingValue := c.tryFlattenEmptyKeyMap(v); underlyingValue != nil {
+			return c.ConvertType(underlyingValue, dstTyp)
 		}
 
 		switch dstKind {
 		// map -> map
 		case reflect.Map:
-			return ConvertMapToMap(v, typ)
+			return c.ConvertMapToMap(v, dstTyp)
 
 		// map[string]any -> struct
 		case reflect.Struct:
@@ -372,42 +814,48 @@ func doConvert(v interface{}, typ reflect.Type) (interface{}, error) {
 			if !ok {
 				return nil, fmt.Errorf("when converting to struct, the given map must be map[string]interface{}, got %v", srcTyp)
 			}
-			return ConvertMapToStruct(mm, typ)
-
-		default:
-			return nil, fmt.Errorf("cannot convert %v to %v", srcTyp, typ)
+			return c.ConvertMapToStruct(mm, dstTyp)
 		}
-	}
+	} else if srcKind == reflect.Struct {
+		switch dstKind {
+		case reflect.Map:
+			return c.ConvertStructToMap(v)
 
-	if dstKind == reflect.Slice {
+		case reflect.Struct:
+			return c.ConvertStructToStruct(v, dstTyp)
+		}
+	} else if dstKind == reflect.Slice {
 		switch srcKind {
 		// string -> []primitive
 		case reflect.String:
-			return ConvertStringToSlice(v.(string), typ)
+			return c.ConvertStringToSlice(v.(string), dstTyp)
 
 		// []any -> []any
 		case reflect.Slice:
-			return ConvertSliceToSlice(v, typ)
-
-		default:
-			return nil, fmt.Errorf("cannot convert %v to %v", srcTyp, typ)
+			return c.ConvertSliceToSlice(v, dstTyp)
 		}
 	}
 
-	return nil, fmt.Errorf("cannot convert %v to %v", srcTyp, typ)
+	return nil, fmt.Errorf("cannot convert %v to %v", srcTyp, dstTyp)
 }
 
-// tryFlattenEmptyKeyMap 判断待转换的值是否是 map[string]interface{} ，且是否只有一个 key 且名称为“_”。
-// 若是，返回该字段的值；否则返回 nil 。
-// 这种 map 是用来包装其他值的，是一个特殊的约定。
-func tryFlattenEmptyKeyMap(v interface{}) interface{} {
+// tryFlattenEmptyKeyMap check the value.
+// When:
+//   - the map is map[string]interface{}
+//   - the map has only one key
+//   - the key is an empty string
+// the function returns the value of the key; otherwise it returns nil.
+//
+// Such map is a special contract, it's used when converting a map to a simple type.
+//
+func (c Conv) tryFlattenEmptyKeyMap(v interface{}) interface{} {
 	m, ok := v.(map[string]interface{})
 	if !ok || len(m) != 1 {
 		return nil
 	}
 
 	for k, v := range m {
-		if k == "_" {
+		if k == "" {
 			return v
 		}
 	}
@@ -415,25 +863,34 @@ func tryFlattenEmptyKeyMap(v interface{}) interface{} {
 	return nil
 }
 
-func convertPrimitiveToPrimitive(v interface{}, dstKind reflect.Kind) (interface{}, error) {
-	// 对于 bool 和其他数值类型需单独对待，因为数值转到 string 再转回 bool 会产生不同的结果。
-	// 如 33 -> "33" -> error ，而实际上应该是 33 -> true 。
+func (c Conv) convertPrimitiveToPrimitive(v interface{}, dstKind reflect.Kind) (interface{}, error) {
+	// For most primitive types, we use string as a middleware. A value is converted to
+	// it's string representaion, then is converted to the destination value.
+	// The fmt and strconv package help us to deal with strings. So we can avoid to implement
+	// such M*N converstions between different types.
+	//
+	// bool must be treated separately. A string representation of a number, such as '33', can't be converted
+	// to a boolean, strconv.ParseBool() returns an error.
+
 	if dstKind == reflect.Bool {
-		return ConverToBool(v)
+		return c.ConverToBool(v)
 	}
 
-	// 其余基础类型，统一转字符串再转回来。利用字符串做胶水类型，比较取巧，可以不用实现 M*N 种转换。
-	sv, err := ConvertPrimitiveToString(v)
+	sv, err := c.ConvertSimpleToString(v)
 	if err != nil {
 		return nil, err
 	}
 
-	dst, err := ConvertStringToPrimitive(sv, dstKind)
+	dst, err := c.ConvertStringToPrimitive(sv, dstKind)
 	if err != nil {
 		return nil, err
 	}
 
 	return dst, nil
+}
+
+func canBeNil(k reflect.Kind) bool {
+	return k == reflect.Map || k == reflect.Slice || k == reflect.Ptr
 }
 
 func buildError(fn, msgFormat string, a ...interface{}) error {
@@ -442,4 +899,63 @@ func buildError(fn, msgFormat string, a ...interface{}) error {
 
 func buildErrorMessage(fn, msgFormat string, a ...interface{}) string {
 	return "conv." + fn + ": " + fmt.Sprintf(msgFormat, a...)
+}
+
+func sourceShouldNotBeNilError(fn string) error {
+	return buildError(fn, "the source value should not be nil")
+}
+
+// ConvertStringToSlice is equivalent to Conv{}.ConvertStringToSlice() .
+func ConvertStringToSlice(v string, primitiveSliceType reflect.Type) (interface{}, error) {
+	return Conv{}.ConvertStringToSlice(v, primitiveSliceType)
+}
+
+// ConverToBool is equivalent to Conv{}.ConverToBool() .
+func ConverToBool(v interface{}) (bool, error) {
+	return Conv{}.ConverToBool(v)
+}
+
+// ConvertStringToPrimitive is equivalent to Conv{}.ConvertStringToPrimitive() .
+func ConvertStringToPrimitive(v string, dstKind reflect.Kind) (interface{}, error) {
+	return Conv{}.ConvertStringToPrimitive(v, dstKind)
+}
+
+// ConvertSimpleToString is equivalent to Conv{}.ConvertSimpleToString() .
+func ConvertSimpleToString(v interface{}) (string, error) {
+	return Conv{}.ConvertSimpleToString(v)
+}
+
+// ConvertSliceToSlice is equivalent to Conv{}.ConvertSliceToSlice() .
+func ConvertSliceToSlice(src interface{}, dstSliceTyp reflect.Type) (interface{}, error) {
+	return Conv{}.ConvertSliceToSlice(src, dstSliceTyp)
+}
+
+// ConvertMapToStruct is equivalent to Conv{}.ConvertMapToStruct() .
+func ConvertMapToStruct(m map[string]interface{}, typ reflect.Type) (interface{}, error) {
+	return Conv{}.ConvertMapToStruct(m, typ)
+}
+
+// ConvertMapToMap is equivalent to Conv{}.ConvertMapToMap() .
+func ConvertMapToMap(m interface{}, typ reflect.Type) (interface{}, error) {
+	return Conv{}.ConvertMapToMap(m, typ)
+}
+
+// ConvertStructToMap is equivalent to Conv{}.ConvertStructToMap() .
+func ConvertStructToMap(v interface{}) (map[string]interface{}, error) {
+	return Conv{}.ConvertStructToMap(v)
+}
+
+// ConvertStructToStruct is equivalent to Conv{}.ConvertStructToStruct() .
+func ConvertStructToStruct(v interface{}, typ reflect.Type) (interface{}, error) {
+	return Conv{}.ConvertStructToStruct(v, typ)
+}
+
+// ConvertType is equivalent to Conv{}.ConvertType() .
+func ConvertType(v interface{}, typ reflect.Type) (interface{}, error) {
+	return Conv{}.ConvertType(v, typ)
+}
+
+// Convert is equivalent to Conv{}.Convert() .
+func Convert(src interface{}, dst interface{}) error {
+	return Conv{}.Convert(src, dst)
 }

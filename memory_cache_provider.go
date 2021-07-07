@@ -46,49 +46,36 @@ func (cp *MemoryCacheProvider) MustGet(key string, value any) {
 }
 
 // implement ICacheProvider.TryGet
-func (cp *MemoryCacheProvider) TryGet(key string, value any) (succ bool, err error) {
+func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
+	if key == "" {
+		return false, fmt.Errorf("key must be not empty")
+	}
+
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
 
-	v, exists := cp.cache.Get(key)
+	item, exists := cp.cache.Get(key)
 	if !exists {
 		return false, nil
 	}
+	itemT := reflect.TypeOf(item)
 
-	rv := reflect.ValueOf(value)
-	if rv.Kind() != reflect.Ptr {
-		return false, fmt.Errorf("'value' is not pointer")
+	//基础类型使用转换
+	if internal.IsPrimitiveKind(itemT.Kind()) {
+		err := internal.Convert(item, value)
+		return true, err
 	}
 
-	if !rv.IsValid() {
-		return false, fmt.Errorf("'value' is nil")
-	}
-
-	rv = rv.Elem()
-	var temp interface{}
-	switch rv.Kind() {
-	case reflect.Bool, reflect.String,
-		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
-		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
-		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128:
-		temp, err = internal.Convert(v, rv.Type())
-		if err != nil {
-			return false, nil
-		}
-	default:
-		if !rv.CanSet() {
-			return false, fmt.Errorf("%t can't set value", rv.Type())
-		}
-
-		temp = v
-	}
-
-	rv.Set(reflect.ValueOf(temp))
+	// 非基础类型，直接设置值。
+	reflect.ValueOf(value).Elem().Set(reflect.ValueOf(item))
 	return true, nil
 }
 
 // implement ICacheProvider.Create
 func (cp *MemoryCacheProvider) Create(key string, value any, t time.Duration) (bool, error) {
+	if key == "" {
+		return false, fmt.Errorf("key must be not empty")
+	}
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -113,6 +100,9 @@ func (cp *MemoryCacheProvider) MustCreate(key string, value any, t time.Duration
 
 // implement ICacheProvider.Set
 func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error {
+	if key == "" {
+		return fmt.Errorf("key must be not empty")
+	}
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -131,6 +121,9 @@ func (cp *MemoryCacheProvider) MustSet(key string, value any, t time.Duration) {
 
 // implement ICacheProvider.Remove
 func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
+	if key == "" {
+		return false, fmt.Errorf("key must be not empty")
+	}
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -150,8 +143,39 @@ func (cp *MemoryCacheProvider) MustRemove(key string) bool {
 
 // implement ICacheProvider.Increase
 func (cp *MemoryCacheProvider) Increase(key string) (int64, error) {
+	if key == "" {
+		return 0, fmt.Errorf("key must be not empty")
+	}
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
+
+	v, expireTime, found := cp.cache.GetWithExpiration(key)
+	if !found {
+		return 0, fmt.Errorf("cache key not exists: %s", key)
+	}
+
+	if _, ok := v.(int64); ok {
+		return cp.cache.IncrementInt64(key, 1)
+	}
+
+	var v64 int64
+	switch v := v.(type) {
+	case int:
+		v64 = int64(v)
+	case int8:
+		v64 = int64(v)
+	case int16:
+		v64 = int64(v)
+	case int32:
+		v64 = int64(v)
+	case int64:
+		v64 = int64(v)
+	default:
+		return 0, fmt.Errorf("unsupport type to increase: %s", reflect.TypeOf(v).Kind())
+	}
+
+	// 更新key的数据类型，并且避免过期时间重置。
+	cp.cache.Set(key, v64, time.Duration(expireTime.UnixNano()-time.Now().UnixNano()))
 
 	return cp.cache.IncrementInt64(key, 1)
 }
@@ -167,16 +191,42 @@ func (cp *MemoryCacheProvider) MustIncrease(key string) int64 {
 
 // implement ICacheProvider.IncreaseOrCreate
 func (cp *MemoryCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
+	if key == "" {
+		return 0, fmt.Errorf("key must be not empty")
+	}
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
-	_, exists := cp.cache.Get(key)
-	if exists {
+	v, expireTime, found := cp.cache.GetWithExpiration(key)
+	if !found {
+		cp.cache.Set(key, increment, t)
+		return increment, nil
+	}
+
+	if _, ok := v.(int64); ok {
 		return cp.cache.IncrementInt64(key, increment)
 	}
 
-	cp.cache.Set(key, increment, t)
-	return increment, nil
+	var v64 int64
+	switch v := v.(type) {
+	case int:
+		v64 = int64(v)
+	case int8:
+		v64 = int64(v)
+	case int16:
+		v64 = int64(v)
+	case int32:
+		v64 = int64(v)
+	case int64:
+		v64 = int64(v)
+	default:
+		return 0, fmt.Errorf("unsupport type to increase: %s", reflect.TypeOf(v).Kind())
+	}
+
+	// 更新key的数据类型，并且避免过期时间重置。
+	r := v64 + increment
+	cp.cache.Set(key, r, time.Duration(expireTime.UnixNano()-time.Now().UnixNano()))
+	return r, nil
 }
 
 // implement ICacheProvider.MustIncreaseOrCreate

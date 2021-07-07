@@ -159,7 +159,7 @@ func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
 		kv, err := cmd.Int64() //只关心key存不存在，以及是不是数字。
 		if err != nil {
 			if err == redis.Nil { //缓存不存在
-				return fmt.Errorf("cache key not exists")
+				return fmt.Errorf("cache key not exists: %s", key)
 			}
 			// 存在但不是数字，或者其他error
 			return err
