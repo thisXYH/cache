@@ -1,16 +1,11 @@
 package cache
 
 import (
+	"cache/internal"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
-)
-
-const (
-	// key = nil的时候，使用的代替表示。
-	nilKeyString = "@.nil.@*"
 )
 
 // Operation 缓存操作对象。
@@ -108,48 +103,20 @@ func (c *Operation) buildCacheKey(keys ...interface{}) string {
 */
 func (c *Operation) oneKeyToStr(v interface{}) string {
 	v = c.indirect(v)
-	if v == nil { //空值替代。
-		return nilKeyString
+	if v == nil {
+		panic(fmt.Errorf("key flag must be not nil pointer"))
 	}
 	vs := ""
 
+	// 基础类型
+	if internal.IsPrimitiveType(reflect.TypeOf(v)) {
+		internal.Convert(v, &vs)
+		return vs
+	}
+
 	switch s := v.(type) {
-	case string:
-		vs = s
-	case bool:
-		if s {
-			vs = "1"
-		} else {
-			vs = "0"
-		}
 	case time.Time:
-		vs = UnixTime(s).String() //毫秒级时间戳
-
-	case int:
-		vs = strconv.FormatInt(int64(s), 10)
-	case int64:
-		vs = strconv.FormatInt(s, 10)
-	case int32:
-		vs = strconv.FormatInt(int64(s), 10)
-	case int16:
-		vs = strconv.FormatInt(int64(s), 10)
-	case int8:
-		vs = strconv.FormatInt(int64(s), 10)
-	case uint:
-		vs = strconv.FormatUint(uint64(s), 10)
-	case uint64:
-		vs = strconv.FormatUint(s, 10)
-	case uint32:
-		vs = strconv.FormatUint(uint64(s), 10)
-	case uint16:
-		vs = strconv.FormatUint(uint64(s), 10)
-	case uint8:
-		vs = strconv.FormatUint(uint64(s), 10)
-	case float64:
-		vs = strconv.FormatFloat(s, 'f', -1, 64)
-	case float32:
-		vs = strconv.FormatFloat(float64(s), 'f', -1, 32)
-
+		vs = UnixTime(v.(time.Time)).String() //毫秒级时间戳
 	case fmt.Stringer:
 		vs = s.String()
 
