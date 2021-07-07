@@ -20,7 +20,7 @@ type Operation struct {
 	cacheProvider CacheProvider
 
 	// 过期时间。
-	expireTime *ExpireTime
+	expireTime *Expiration
 
 	// [:unique flag] 部分的拼接元素的个数。
 	// 不支持的拼接类型：Complex64, Complex128, Array, Chan, Func ,Interface, Map, Slice, Struct, UnsafePointer
@@ -31,7 +31,7 @@ type Operation struct {
 // 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]
 // expireTime : 过期时长， nil或者CacheExpirationZero 表不过期。
 // uniqueFlagLen : 指定用来拼接[:unique flag]部分的元素个数。
-func NewOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider CacheProvider, expireTime *ExpireTime) *Operation {
+func NewOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider CacheProvider, expireTime *Expiration) *Operation {
 	if cacheNamespace == "" || keyPrefix == "" {
 		panic(fmt.Errorf(`neither 'cacheNamespace' nor 'keyPrefix' can be zero value`))
 	}

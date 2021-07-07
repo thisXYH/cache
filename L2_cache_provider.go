@@ -20,10 +20,10 @@ type L2CacheProvider struct {
 	// expireTime 一级缓存的过期时间，
 	// 其他Api的缓存时间为二级缓存的缓存时间，
 	// 要求二级缓存的过期时间 > 一级缓存。
-	expireTime *ExpireTime
+	expireTime *Expiration
 }
 
-func NewL2CacheProvider(l1, l2 CacheProvider, expireTime *ExpireTime) *L2CacheProvider {
+func NewL2CacheProvider(l1, l2 CacheProvider, expireTime *Expiration) *L2CacheProvider {
 	if expireTime == nil {
 		panic(fmt.Errorf("'expireTime' must not be nil"))
 	}

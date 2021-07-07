@@ -15,7 +15,7 @@ func ExampleKeyOperation() {
 	cacheOp := NewOperation(
 		"go", "cache:test", 2,
 		NewMemoryCacheProvider(1*time.Minute),
-		NewExpireTimeFromMinute(10, 2))
+		NewExpirationFromMinute(10, 2))
 
 	// 获取 key 操作对象
 	// 这个对象中包含了组装好的完整换缓存key，
