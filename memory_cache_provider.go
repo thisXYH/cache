@@ -66,7 +66,7 @@ func (cp *MemoryCacheProvider) TryGet(key string, value any) (bool, error) {
 		return true, err
 	}
 
-	// 非基础类型，直接设置值。
+	// 非基础类型，直接设置值， 反射不能设置 unexposed field。
 	reflect.ValueOf(value).Elem().Set(reflect.ValueOf(item))
 	return true, nil
 }
