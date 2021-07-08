@@ -91,8 +91,6 @@ func (c *Operation) buildCacheKey(keys ...interface{}) string {
 
 /*
 	不支持的type
-		Complex64
-		Complex128
 		Array
 		Chan
 		Func
