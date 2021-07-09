@@ -10,7 +10,7 @@
     * [X] 二级缓存, 不支持Increase。
 
 ## Usage
-````Go
+````go
 func ExampleKeyOperation() {
 	// 创建一个缓存操作对象。
 	//  指定key的组成: go:cache:test<_flag1><_flag2>
