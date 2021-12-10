@@ -1,23 +1,4 @@
-# cache
-提供一套缓存操作的语义，以及一些已实现的缓存提供器。
-
-## 功能
-* [X] 缓存key管理
-* [X] 随机过期时间管理
-* [X] 自定义缓存提供器
-* 缓存提供器
-    * [X] Redis缓存
-    * [X] memory缓存
-    * [X] 二级缓存, 不支持Increase。
-
-## 快速开始
-```bash
-go get -u github.com/thisXYH/cache@latest
-```
-
-## 使用样例
-````go
-package cache_example
+package cache_sample
 
 import (
 	"fmt"
@@ -68,6 +49,3 @@ func doSomething() {
 	fmt.Println(intV)
 	// output: 8
 }
-````
-
-
