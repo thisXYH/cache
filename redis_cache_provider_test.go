@@ -1,4 +1,4 @@
-package cache
+package caching
 
 import (
 	"context"
@@ -15,34 +15,98 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// 指定测试顺序。
-func TestRedisCacheProvider_Order(t *testing.T) {
-	// new
-	t.Run("New", TestNewRedisCacheProvider)
+// 测试准备。
+func RedisCacheProviderPrepare() {
+	p := getNewEveryTime()
+	intv := 1
+	intvPtr := &intv
+	var intf interface{} = intv
+	type args struct {
+		key   string
+		value any
+		t     time.Duration
+	}
+	keys := []args{
+		{"bool_true", true, NoExpiration},
+		{"bool_false", false, NoExpiration},
 
-	// set
-	t.Run("Set", TestRedisCacheProvider_Set)         //测设置支持的所有类型能否很正常设置
-	t.Run("MustSet", TestRedisCacheProvider_MustSet) //测能否正常panic
+		{"set_int8", int8(-8), NoExpiration},
+		{"set_int16", int16(-16), NoExpiration},
+		{"set_int32", int16(-32), NoExpiration},
+		{"set_int64", int64(-64), NoExpiration},
+		{"set_int", int(100), NoExpiration},
 
-	// create
-	t.Run("Create", TestRedisCacheProvider_Create)         //行为是否如期
-	t.Run("MustCreate", TestRedisCacheProvider_MustCreate) //测能否正常panic
-	time.Sleep(10 * time.Millisecond)                      //过期key
+		{"set_uint8", uint8(8), NoExpiration},
+		{"set_uint16", uint16(16), NoExpiration},
+		{"set_uint32", uint16(32), NoExpiration},
+		{"set_uint64", uint64(64), NoExpiration},
+		{"set_uint", uint(100), NoExpiration},
 
-	// get
-	t.Run("Get", TestRedisCacheProvider_Get)         //测能否正常接收值
-	t.Run("MustGet", TestRedisCacheProvider_MustGet) //测能否正常panic
-	t.Run("TryGet", TestRedisCacheProvider_TryGet)   //测key不存在的时候能否表示
+		{"set_float32", float32(123.5), NoExpiration},
+		{"set_float64", float64(123.5), NoExpiration},
 
-	// remove
-	t.Run("Remove", TestRedisCacheProvider_Remove)         //移除测试数据，并且测试 key存在和不存在 两种行为
-	t.Run("MustRemove", TestRedisCacheProvider_MustRemove) //测能否正常panic
+		{"set_array_int", [3]int{1, 2, 3}, NoExpiration},
+		{"set_map_int_string", map[int]string{1: "a", 2: "b", 3: "c"}, NoExpiration},
+		{"set_slice_string", []string{"a", "b", "c"}, NoExpiration},
+		{"set_struct", data, NoExpiration},
 
-	// increase
-	t.Run("Increase", TestRedisCacheProvider_Increase)                         //通过redis事务实现的，主要测试并发下的事务完整性
-	t.Run("MustIncrease", TestRedisCacheProvider_MustIncrease)                 //测能否正常panic
-	t.Run("IncreaseOrCreate", TestRedisCacheProvider_IncreaseOrCreate)         //直接通过 redis incr 命令完成
-	t.Run("MustIncreaseOrCreate", TestRedisCacheProvider_MustIncreaseOrCreate) //测能否正常panic
+		{"set_ptr", intvPtr, NoExpiration},
+		{"set_nil", nil, NoExpiration},
+		{"set_interface", intf, NoExpiration},
+
+		{"set_time", tn, NoExpiration},
+		{"set_unixTime", UnixTime(tn), NoExpiration},
+	}
+
+	for _, v := range keys {
+		p.Set(v.key, v.value, v.t)
+	}
+}
+
+func RedisCacheProviderClearn() {
+	p := getNewEveryTime()
+	keys := []string{
+		"bool_true",
+		"bool_false",
+
+		"set_int8",
+		"set_int16",
+		"set_int32",
+		"set_int64",
+		"set_int",
+
+		"set_uint8",
+		"set_uint16",
+		"set_uint32",
+		"set_uint64",
+		"set_uint",
+
+		"set_float32",
+		"set_float64",
+
+		"set_array_int",
+		"set_map_int_string",
+		"set_slice_string",
+		"set_struct",
+
+		"set_ptr",
+		"set_nil",
+		"set_interface",
+
+		"set_time",
+		"set_unixTime",
+
+		"bool_true_create",
+		"negative_expireTime",
+		"unsupport_kind_complex",
+		"unsupport_kind_channel",
+		"bool_true_Remove",
+		"not_number",
+	}
+
+	for _, v := range keys {
+		p.Remove(v)
+	}
 }
 
 func TestNewRedisCacheProvider(t *testing.T) {
@@ -84,6 +148,9 @@ func TestNewRedisCacheProvider(t *testing.T) {
 }
 
 func TestRedisCacheProvider_Get(t *testing.T) {
+	RedisCacheProviderPrepare()
+	defer RedisCacheProviderClearn()
+
 	p := getNewEveryTime()
 
 	get_bool := true
@@ -123,8 +190,8 @@ func TestRedisCacheProvider_Get(t *testing.T) {
 		{"get_uint64", p, args{"set_uint64", &get_uint}, false, uint(64)},
 		{"get_uint", p, args{"set_uint", &get_uint}, false, uint(100)},
 
-		{"get_float32", p, args{"set_float32", &get_float}, false, 123.123},
-		{"get_float64", p, args{"set_float64", &get_float}, false, 123.123},
+		{"get_float32", p, args{"set_float32", &get_float}, false, 123.5},
+		{"get_float64", p, args{"set_float64", &get_float}, false, 123.5},
 
 		{"get_array_int", p, args{"set_array_int", &get_array}, false, [3]int{1, 2, 3}},
 		{"get_map_int_string", p, args{"set_map_int_string", &get_map}, false, map[int]string{1: "a", 2: "b", 3: "c"}},
@@ -158,6 +225,9 @@ func TestRedisCacheProvider_Get(t *testing.T) {
 }
 
 func TestRedisCacheProvider_MustGet(t *testing.T) {
+	RedisCacheProviderPrepare()
+	defer RedisCacheProviderClearn()
+
 	p := getNewEveryTime()
 	get_bool := true
 
@@ -195,6 +265,9 @@ func TestRedisCacheProvider_MustGet(t *testing.T) {
 }
 
 func TestRedisCacheProvider_TryGet(t *testing.T) {
+	RedisCacheProviderPrepare()
+	defer RedisCacheProviderClearn()
+
 	p := getNewEveryTime()
 	get_bool := true
 	type args struct {
@@ -226,6 +299,9 @@ func TestRedisCacheProvider_TryGet(t *testing.T) {
 }
 
 func TestRedisCacheProvider_Create(t *testing.T) {
+	RedisCacheProviderPrepare()
+	defer RedisCacheProviderClearn()
+
 	p := getNewEveryTime()
 	type args struct {
 		key   string
@@ -257,6 +333,9 @@ func TestRedisCacheProvider_Create(t *testing.T) {
 }
 
 func TestRedisCacheProvider_MustCreate(t *testing.T) {
+	RedisCacheProviderPrepare()
+	defer RedisCacheProviderClearn()
+
 	p := getNewEveryTime()
 	type args struct {
 		key   string
@@ -326,8 +405,8 @@ func TestRedisCacheProvider_Set(t *testing.T) {
 		{"set_uint64", p, args{"set_uint64", uint64(64), NoExpiration}, false},
 		{"set_uint", p, args{"set_uint", uint(100), NoExpiration}, false},
 
-		{"set_float32", p, args{"set_float32", float32(123.123), NoExpiration}, false},
-		{"set_float64", p, args{"set_float64", float64(123.123), NoExpiration}, false},
+		{"set_float32", p, args{"set_float32", float32(123.5), NoExpiration}, false},
+		{"set_float64", p, args{"set_float64", float64(123.5), NoExpiration}, false},
 
 		{"set_array_int", p, args{"set_array_int", [3]int{1, 2, 3}, NoExpiration}, false},
 		{"set_map_int_string", p, args{"set_map_int_string", map[int]string{1: "a", 2: "b", 3: "c"}, NoExpiration}, false},
@@ -348,6 +427,8 @@ func TestRedisCacheProvider_Set(t *testing.T) {
 			}
 		})
 	}
+
+	RedisCacheProviderClearn()
 }
 
 func TestRedisCacheProvider_MustSet(t *testing.T) {
@@ -392,6 +473,9 @@ func TestRedisCacheProvider_MustSet(t *testing.T) {
 }
 
 func TestRedisCacheProvider_Remove(t *testing.T) {
+	RedisCacheProviderPrepare()
+	defer RedisCacheProviderClearn()
+
 	p := getNewEveryTime()
 	type args struct {
 		key string
@@ -450,6 +534,9 @@ func TestRedisCacheProvider_Remove(t *testing.T) {
 }
 
 func TestRedisCacheProvider_MustRemove(t *testing.T) {
+	RedisCacheProviderPrepare()
+	defer RedisCacheProviderClearn()
+
 	p := getNewEveryTime()
 	type args struct {
 		key string
@@ -567,7 +654,7 @@ func TestRedisCacheProvider_IncreaseOrCreate(t *testing.T) {
 	after := 0
 	p.MustGet(key, &after)
 	if after != 20 {
-		t.Errorf("IncreaseOrCreate: number error")
+		t.Errorf("IncreaseOrCreate: number error, %d", after)
 	}
 }
 

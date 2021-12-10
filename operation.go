@@ -1,4 +1,4 @@
-package cache
+package caching
 
 import (
 	"fmt"
@@ -6,32 +6,32 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thisXYH/cache/internal"
+	"github.com/cmstar/go-conv"
 )
 
 // Operation 缓存操作对象。
 type Operation struct {
-	// 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]
+	// 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]。
 	cacheNamespace string
 
-	// KeyBase = <CacheNamespace>:<Prefix>
+	// KeyBase = <CacheNamespace>:<Prefix> .
 	keyBase string
 
-	// cacheProvider 缓存提供者
+	// cacheProvider 缓存提供者。
 	cacheProvider CacheProvider
 
 	// 过期时间。
 	expireTime *Expiration
 
 	// [:unique flag] 部分的拼接元素的个数。
-	// 不支持的拼接类型：Complex64, Complex128, Array, Chan, Func ,Interface, Map, Slice, Struct, UnsafePointer
+	// 不支持的拼接类型：Complex64, Complex128, Array, Chan, Func ,Interface, Map, Slice, Struct, UnsafePointer。
 	uniqueFlagLen int
 }
 
-// NewOperation 创建一个缓存操作对象,
-// 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]
-// expireTime : 过期时长， nil或者CacheExpirationZero 表不过期。
-// uniqueFlagLen : 指定用来拼接[:unique flag]部分的元素个数。
+// NewOperation 创建一个缓存操作对象。
+// 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]。
+// expireTime: 过期时长， nil 或者 CacheExpirationZero 表不过期。
+// uniqueFlagLen: 指定用来拼接 [:unique flag] 部分的元素个数。
 func NewOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider CacheProvider, expireTime *Expiration) *Operation {
 	if cacheNamespace == "" || keyPrefix == "" {
 		panic(fmt.Errorf(`neither 'cacheNamespace' nor 'keyPrefix' can be zero value`))
@@ -42,7 +42,7 @@ func NewOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProv
 	}
 
 	if uniqueFlagLen < 0 {
-		panic(fmt.Errorf(`'uniqueFlagLen' must not be letter than 0`))
+		panic(fmt.Errorf(`'uniqueFlagLen' must not be less than 0`))
 	}
 
 	cp := &Operation{}
@@ -76,7 +76,7 @@ func (c *Operation) Key(keys ...interface{}) *KeyOperation {
 // buildCacheKey 构建缓存key。
 func (c *Operation) buildCacheKey(keys ...interface{}) string {
 	if len(keys) == 0 {
-		return c.keyBase // key：没有 [:unique flag]
+		return c.keyBase // key：没有 [:unique flag]。
 	}
 	sb := strings.Builder{}
 	sb.WriteString(c.keyBase)
@@ -103,19 +103,19 @@ func (c *Operation) buildCacheKey(keys ...interface{}) string {
 func (c *Operation) oneKeyToStr(v interface{}) string {
 	v = c.indirect(v)
 	if v == nil {
-		panic(fmt.Errorf("key flag must be not nil pointer"))
+		panic(fmt.Errorf("key flag must not be nil pointer"))
 	}
 	vs := ""
 
-	// 基础类型
-	if internal.IsPrimitiveType(reflect.TypeOf(v)) {
-		internal.Convert(v, &vs)
+	// 基础类型。
+	if conv.IsPrimitiveType(reflect.TypeOf(v)) {
+		conv.Convert(v, &vs)
 		return vs
 	}
 
 	switch s := v.(type) {
 	case time.Time:
-		vs = UnixTime(v.(time.Time)).String() //毫秒级时间戳
+		vs = UnixTime(v.(time.Time)).String() //毫秒级时间戳。
 	case fmt.Stringer:
 		vs = s.String()
 

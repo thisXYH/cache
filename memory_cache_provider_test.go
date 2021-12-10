@@ -1,4 +1,4 @@
-package cache
+package caching
 
 import (
 	"reflect"
@@ -9,32 +9,89 @@ import (
 // 测试用
 var mp = NewMemoryCacheProvider(2 * time.Second)
 
-// 指定测试顺序。
-func TestMemoryCacheProvider_Order(t *testing.T) {
-	// new
-	t.Run("New", TestNewMemoryCacheProvider)
+func MemoryCacheProviderPrepare() {
+	intv := 1
+	intvPtr := &intv
+	var intf interface{} = intv
 
-	// set
-	t.Run("Set", TestMemoryCacheProvider_Set)         //测设置支持的所有类型能否很正常设置
-	t.Run("MustSet", TestMemoryCacheProvider_MustSet) //测能否正常panic
+	type args struct {
+		key   string
+		value any
+		t     time.Duration
+	}
+	keys := []args{
+		{"bool_true", true, NoExpiration},
+		{"bool_false", false, NoExpiration},
 
-	// create
-	t.Run("Create", TestMemoryCacheProvider_Create)         //行为是否如期
-	t.Run("MustCreate", TestMemoryCacheProvider_MustCreate) //测能否正常panic
-	time.Sleep(10 * time.Millisecond)                       //过期key
+		{"set_int8", int8(-8), NoExpiration},
+		{"set_int16", int16(-16), NoExpiration},
+		{"set_int32", int16(-32), NoExpiration},
+		{"set_int64", int64(-64), NoExpiration},
+		{"set_int", int(100), NoExpiration},
 
-	// get
-	t.Run("Get", TestMemoryCacheProvider_Get)         //测能否正常接收值
-	t.Run("MustGet", TestMemoryCacheProvider_MustGet) //测能否正常panic
-	t.Run("TryGet", TestMemoryCacheProvider_TryGet)   //测key不存在的时候能否表示
+		{"set_uint8", uint8(8), NoExpiration},
+		{"set_uint16", uint16(16), NoExpiration},
+		{"set_uint32", uint16(32), NoExpiration},
+		{"set_uint64", uint64(64), NoExpiration},
+		{"set_uint", uint(100), NoExpiration},
 
-	// remove
-	t.Run("Remove", TestMemoryCacheProvider_Remove)         //移除测试数据，并且测试 key存在和不存在 两种行为
-	t.Run("MustRemove", TestMemoryCacheProvider_MustRemove) //测能否正常panic
+		{"set_float32", float32(123.5), NoExpiration},
+		{"set_float64", float64(123.5), NoExpiration},
 
-	// increase
-	t.Run("Increase", TestMemoryCacheProvider_Increase)                 //通过redis事务实现的，主要测试并发下的事务完整性
-	t.Run("IncreaseOrCreate", TestMemoryCacheProvider_IncreaseOrCreate) //直接通过 redis incr 命令完成
+		{"set_array_int", [3]int{1, 2, 3}, NoExpiration},
+		{"set_map_int_string", map[int]string{1: "a", 2: "b", 3: "c"}, NoExpiration},
+		{"set_slice_string", []string{"a", "b", "c"}, NoExpiration},
+		{"set_struct", data, NoExpiration},
+
+		{"set_ptr", intvPtr, NoExpiration},
+		{"set_nil", nil, NoExpiration},
+		{"set_interface", intf, NoExpiration},
+
+		{"set_time", tn, NoExpiration},
+		{"set_unixTime", UnixTime(tn), NoExpiration},
+	}
+
+	for _, v := range keys {
+		mp.Set(v.key, v.value, v.t)
+	}
+}
+
+func MemoryCacheProviderClearn() {
+	keys := []string{
+		"bool_true",
+		"bool_false",
+
+		"set_int8",
+		"set_int16",
+		"set_int32",
+		"set_int64",
+		"set_int",
+
+		"set_uint8",
+		"set_uint16",
+		"set_uint32",
+		"set_uint64",
+		"set_uint",
+
+		"set_float32",
+		"set_float64",
+
+		"set_array_int",
+		"set_map_int_string",
+		"set_slice_string",
+		"set_struct",
+
+		"set_ptr",
+		"set_nil",
+		"set_interface",
+
+		"set_time",
+		"set_unixTime",
+	}
+
+	for _, v := range keys {
+		mp.Remove(v)
+	}
 }
 
 func TestNewMemoryCacheProvider(t *testing.T) {
@@ -71,6 +128,9 @@ func TestNewMemoryCacheProvider(t *testing.T) {
 }
 
 func TestMemoryCacheProvider_Get(t *testing.T) {
+	MemoryCacheProviderPrepare()
+	defer MemoryCacheProviderClearn()
+
 	get_bool := true
 	get_int := 0
 	//get_int_ptr := &get_int
@@ -109,8 +169,8 @@ func TestMemoryCacheProvider_Get(t *testing.T) {
 		{"get_uint64", mp, args{"set_uint64", &get_uint}, false, uint(64)},
 		{"get_uint", mp, args{"set_uint", &get_uint}, false, uint(100)},
 
-		{"get_float32", mp, args{"set_float32", &get_float}, false, 123.123},
-		{"get_float64", mp, args{"set_float64", &get_float}, false, 123.123},
+		{"get_float32", mp, args{"set_float32", &get_float}, false, 123.5},
+		{"get_float64", mp, args{"set_float64", &get_float}, false, 123.5},
 
 		{"get_array_int", mp, args{"set_array_int", &get_array}, false, [3]int{1, 2, 3}},
 		{"get_map_int_string", mp, args{"set_map_int_string", &get_map}, false, map[int]string{1: "a", 2: "b", 3: "c"}},
@@ -145,6 +205,9 @@ func TestMemoryCacheProvider_Get(t *testing.T) {
 }
 
 func TestMemoryCacheProvider_MustGet(t *testing.T) {
+	MemoryCacheProviderPrepare()
+	defer MemoryCacheProviderClearn()
+
 	get_bool := true
 	type args struct {
 		key   string
@@ -180,6 +243,8 @@ func TestMemoryCacheProvider_MustGet(t *testing.T) {
 }
 
 func TestMemoryCacheProvider_TryGet(t *testing.T) {
+	mp.Set("bool_true", true, NoExpiration)
+
 	get_bool := true
 	type args struct {
 		key   string
@@ -210,6 +275,8 @@ func TestMemoryCacheProvider_TryGet(t *testing.T) {
 }
 
 func TestMemoryCacheProvider_Create(t *testing.T) {
+	mp.Set("bool_true", true, NoExpiration)
+
 	type args struct {
 		key   string
 		value any
@@ -275,6 +342,8 @@ func TestMemoryCacheProvider_MustCreate(t *testing.T) {
 }
 
 func TestMemoryCacheProvider_Set(t *testing.T) {
+	defer MemoryCacheProviderClearn()
+
 	intv := 1
 	intvPtr := &intv
 	var intf interface{} = intv
@@ -305,8 +374,8 @@ func TestMemoryCacheProvider_Set(t *testing.T) {
 		{"set_uint64", mp, args{"set_uint64", uint64(64), NoExpiration}, false},
 		{"set_uint", mp, args{"set_uint", uint(100), NoExpiration}, false},
 
-		{"set_float32", mp, args{"set_float32", float32(123.123), NoExpiration}, false},
-		{"set_float64", mp, args{"set_float64", float64(123.123), NoExpiration}, false},
+		{"set_float32", mp, args{"set_float32", float32(123.5), NoExpiration}, false},
+		{"set_float64", mp, args{"set_float64", float64(123.5), NoExpiration}, false},
 
 		{"set_array_int", mp, args{"set_array_int", [3]int{1, 2, 3}, NoExpiration}, false},
 		{"set_map_int_string", mp, args{"set_map_int_string", map[int]string{1: "a", 2: "b", 3: "c"}, NoExpiration}, false},

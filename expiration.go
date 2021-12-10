@@ -1,4 +1,4 @@
-package cache
+package caching
 
 import (
 	"fmt"
@@ -18,19 +18,19 @@ type Expiration struct {
 }
 
 // NewExpiration 新建缓存过期时间。
-//  @baseExpireTime: 基准过期时长，0表不过期
-//  @randomRangeTime: 随机过期市场，0表不随机，否则baseExpireTime将增加[-randomRangeTime, +randomRangeTime]
+//  @baseExpireTime: 基准过期时长，0表不过期。
+//  @randomRangeTime: 随机过期市场，0表不随机，否则baseExpireTime将增加[-randomRangeTime, +randomRangeTime]。
 func NewExpiration(baseExpireTime, randomRangeTime time.Duration) *Expiration {
 	if baseExpireTime < 0 {
-		panic(fmt.Errorf("'baseExpireTime' must not be letter than 0"))
+		panic(fmt.Errorf("'baseExpireTime' must not be less than 0"))
 	}
 
 	if randomRangeTime < 0 {
-		panic(fmt.Errorf("'randomRangeTime' must not be letter than 0"))
+		panic(fmt.Errorf("'randomRangeTime' must not be less than 0"))
 	}
 
 	if baseExpireTime < randomRangeTime {
-		panic(fmt.Errorf("'baseExpireTime' must not be letter than 'randomRangeTime'"))
+		panic(fmt.Errorf("'baseExpireTime' must not be less than 'randomRangeTime'"))
 	}
 
 	var randTemp *rand.Rand

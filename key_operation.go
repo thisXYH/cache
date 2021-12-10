@@ -1,4 +1,4 @@
-package cache
+package caching
 
 type KeyOperation struct {
 	cp *Operation
@@ -7,9 +7,8 @@ type KeyOperation struct {
 	Key string
 }
 
-// Get 获取指定缓存值,
-// 如果key存在，value被更新成对应值，
-// 反之value值不做改变。
+// Get 获取指定缓存值。
+// 如果key存在，value被更新成对应值， 反之value值不做改变。
 func (keyOp *KeyOperation) Get(value any) error {
 	return keyOp.cp.cacheProvider.Get(keyOp.Key, value)
 }
@@ -19,16 +18,14 @@ func (keyOp *KeyOperation) MustGet(value any) {
 	keyOp.cp.cacheProvider.MustGet(keyOp.Key, value)
 }
 
-// TryGet 尝试获取指定缓存，
-// 若key存在，value被更新成对应值，返回true，
-// 反之value值不做改变，返回false。
+// TryGet 尝试获取指定缓存。
+// 若key存在，value被更新成对应值，返回true，反之value值不做改变，返回false。
 func (keyOp *KeyOperation) TryGet(value any) (bool, error) {
 	return keyOp.cp.cacheProvider.TryGet(keyOp.Key, value)
 }
 
-// Create 仅当缓存键不存在时，创建缓存，
-// t 过期时长， 0 表不过期。
-// return: true表示创建了缓存；false说明缓存已经存在了。
+// Create 仅当缓存键不存在时，创建缓存。
+//  return: true表示创建了缓存；false说明缓存已经存在了。
 func (keyOp *KeyOperation) Create(value any) (bool, error) {
 	return keyOp.cp.cacheProvider.Create(keyOp.Key, value, keyOp.cp.expireTime.NextExpireTime())
 }
@@ -38,8 +35,7 @@ func (keyOp *KeyOperation) MustCreate(value any) bool {
 	return keyOp.cp.cacheProvider.MustCreate(keyOp.Key, value, keyOp.cp.expireTime.NextExpireTime())
 }
 
-// Set 设置或者更新缓存，
-// t 过期时长， 0 表不过期。
+// Set 设置或者更新缓存。
 func (keyOp *KeyOperation) Set(value any) error {
 	return keyOp.cp.cacheProvider.Set(keyOp.Key, value, keyOp.cp.expireTime.NextExpireTime())
 }
@@ -50,7 +46,7 @@ func (keyOp *KeyOperation) MustSet(value any) {
 }
 
 // Remove 移除指定缓存,
-// return: true成功移除，false缓存不存在。
+//  return: true成功移除，false缓存不存在。
 func (keyOp *KeyOperation) Remove() (bool, error) {
 	return keyOp.cp.cacheProvider.Remove(keyOp.Key)
 }

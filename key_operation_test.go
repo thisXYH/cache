@@ -1,7 +1,7 @@
-package cache
+package caching
 
 import (
-	"log"
+	"fmt"
 	"time"
 )
 
@@ -24,22 +24,23 @@ func ExampleKeyOperation() {
 	key := cacheOp.Key(time.Now(), true)
 
 	// 获取完整缓存key
-	// log.Println(key.Key)
+	// fmt.Println(key.Key)
 	// output: go:cache:test_1625123485000_1
 
-	key.Set("hellow word!")
+	key.Set("hello world!")
 
 	var value string
 	key.Get(&value)
 
-	log.Println(value)
-	// output: hellow word!
+	fmt.Println(value)
 
 	// 支持基础类型互转，存进去一个 int8  用 int 去接。
 	key.Set(int(8))
 	var intV int
 	key.Get(&intV)
 
-	log.Println(intV)
-	// output: 8
+	fmt.Println(intV)
+	// output:
+	// hello world!
+	// 8
 }

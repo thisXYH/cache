@@ -1,4 +1,4 @@
-package cache
+package caching
 
 import (
 	"time"
@@ -7,11 +7,17 @@ import (
 )
 
 func getNewEveryTime() *RedisCacheProvider {
-	return NewRedisCacheProvider(redis.NewClient(&redis.Options{
-		Addr:     "",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	}))
+	cli := redis.NewClient(&redis.Options{
+		Addr: "redis.cache.tongbu.com:16381",
+		//Password: "CDDayDbWNJ6zW3p1weIuv9", // no password set
+		DB: 0, // use default DB
+
+		// 最大重试次数，-1 不重试
+		// 对于一些非幂等的命令，执行重试是不合理的，比如 incr
+		MaxRetries: -1,
+	})
+
+	return NewRedisCacheProvider(cli)
 }
 
 // 测试的时候使用。

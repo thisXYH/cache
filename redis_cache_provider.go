@@ -1,4 +1,4 @@
-package cache
+package caching
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 )
 
 // Redis 类型的缓存提供器。
-// 数据的组织方式，基础类型直接使用
 type RedisCacheProvider struct {
 	client redis.Cmdable
 }
@@ -27,23 +26,23 @@ func NewRedisCacheProvider(cli redis.Cmdable) *RedisCacheProvider {
 	return &RedisCacheProvider{cli}
 }
 
-// implement ICacheProvider.Get
+// implement CacheProvider.Get .
 func (cli *RedisCacheProvider) Get(key string, value any) error {
 	_, err := cli.TryGet(key, value)
 	return err
 }
 
-// implement ICacheProvider.MustGet
+// implement CacheProvider.MustGet .
 func (cli *RedisCacheProvider) MustGet(key string, value any) {
 	if err := cli.Get(key, value); err != nil {
 		panic(err)
 	}
 }
 
-// implement ICacheProvider.TryGet
+// implement CacheProvider.TryGet .
 func (cli *RedisCacheProvider) TryGet(key string, value any) (bool, error) {
 	if key == "" {
-		return false, fmt.Errorf("key must be not empty")
+		return false, fmt.Errorf("key must not be empty")
 	}
 
 	cmd := cli.client.Get(context.Background(), key)
@@ -62,10 +61,10 @@ func (cli *RedisCacheProvider) TryGet(key string, value any) (bool, error) {
 	return true, nil
 }
 
-// implement ICacheProvider.Create
+// implement CacheProvider.Create .
 func (cli *RedisCacheProvider) Create(key string, value any, t time.Duration) (bool, error) {
 	if key == "" {
-		return false, fmt.Errorf("key must be not empty")
+		return false, fmt.Errorf("key must not be empty")
 	}
 
 	v, err := json.Marshal(value)
@@ -77,7 +76,7 @@ func (cli *RedisCacheProvider) Create(key string, value any, t time.Duration) (b
 	return cmd.Result()
 }
 
-// implement ICacheProvider.MustCreate
+// implement CacheProvider.MustCreate .
 func (cli *RedisCacheProvider) MustCreate(key string, value any, t time.Duration) bool {
 	v, err := cli.Create(key, value, t)
 	if err != nil {
@@ -86,10 +85,10 @@ func (cli *RedisCacheProvider) MustCreate(key string, value any, t time.Duration
 	return v
 }
 
-// implement ICacheProvider.Set
+// implement CacheProvider.Set .
 func (cli *RedisCacheProvider) Set(key string, value any, t time.Duration) error {
 	if key == "" {
-		return fmt.Errorf("key must be not empty")
+		return fmt.Errorf("key must not be empty")
 	}
 
 	v, err := json.Marshal(value)
@@ -97,7 +96,7 @@ func (cli *RedisCacheProvider) Set(key string, value any, t time.Duration) error
 		return err
 	}
 
-	const OK = `OK` //执行成功的返回值。
+	const OK = `OK` // 执行成功的返回值。
 	cmd := cli.client.Set(context.Background(), key, string(v), t)
 	cv, err := cmd.Result()
 	if err != nil {
@@ -111,17 +110,17 @@ func (cli *RedisCacheProvider) Set(key string, value any, t time.Duration) error
 	return nil
 }
 
-// implement ICacheProvider.MustSet
+// implement CacheProvider.MustSet .
 func (cli *RedisCacheProvider) MustSet(key string, value any, t time.Duration) {
 	if err := cli.Set(key, value, t); err != nil {
 		panic(err)
 	}
 }
 
-// implement ICacheProvider.Remove
+// implement CacheProvider.Remove .
 func (cli *RedisCacheProvider) Remove(key string) (bool, error) {
 	if key == "" {
-		return false, fmt.Errorf("key must be not empty")
+		return false, fmt.Errorf("key must not be empty")
 	}
 
 	cmd := cli.client.Del(context.Background(), key)
@@ -136,7 +135,7 @@ func (cli *RedisCacheProvider) Remove(key string) (bool, error) {
 	return true, nil
 }
 
-// implement ICacheProvider.MustRemove
+// implement CacheProvider.MustRemove .
 func (cli *RedisCacheProvider) MustRemove(key string) bool {
 	v, err := cli.Remove(key)
 	if err != nil {
@@ -145,23 +144,23 @@ func (cli *RedisCacheProvider) MustRemove(key string) bool {
 	return v
 }
 
-// implement ICacheProvider.Increase
+// implement CacheProvider.Increase .
 func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
 	if key == "" {
-		return 0, fmt.Errorf("key must be not empty")
+		return 0, fmt.Errorf("key must not be empty")
 	}
 
-	const MaxRetries = 3 //最大重试次数。
+	const MaxRetries = 2 // 最大重试次数。
 
 	var value int64 = 0
 	increaseIfExistsTrans := func(tx *redis.Tx) error {
 		cmd := tx.Get(tx.Context(), key)
-		kv, err := cmd.Int64() //只关心key存不存在，以及是不是数字。
+		kv, err := cmd.Int64() // 只关心key存不存在，以及是不是数字。
 		if err != nil {
-			if err == redis.Nil { //缓存不存在
-				return fmt.Errorf("cache key not exists: %s", key)
+			if err == redis.Nil { //缓存不存在。
+				return fmt.Errorf("cache key does not exist: %s", key)
 			}
-			// 存在但不是数字，或者其他error
+			// 存在但不是数字，或者其他 error。
 			return err
 		}
 		kv++
@@ -196,7 +195,7 @@ func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
 	return 0, fmt.Errorf("increment reached maximum number of retries(%d)", MaxRetries)
 }
 
-// implement ICacheProvider.MustIncrease
+// implement CacheProvider.MustIncrease .
 func (cli *RedisCacheProvider) MustIncrease(key string) int64 {
 	v, err := cli.Increase(key)
 	if err != nil {
@@ -205,10 +204,10 @@ func (cli *RedisCacheProvider) MustIncrease(key string) int64 {
 	return v
 }
 
-// implement ICacheProvider.IncreaseOrCreate
+// implement CacheProvider.IncreaseOrCreate .
 func (cli *RedisCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
 	if key == "" {
-		return 0, fmt.Errorf("key must be not empty")
+		return 0, fmt.Errorf("key must not be empty")
 	}
 
 	cmd := cli.client.IncrBy(context.Background(), key, increment)
@@ -225,7 +224,7 @@ func (cli *RedisCacheProvider) IncreaseOrCreate(key string, increment int64, t t
 	return v, err
 }
 
-// implement ICacheProvider.MustIncreaseOrCreate
+// implement CacheProvider.MustIncreaseOrCreate .
 func (cli *RedisCacheProvider) MustIncreaseOrCreate(key string, increment int64, t time.Duration) int64 {
 	v, err := cli.IncreaseOrCreate(key, increment, t)
 	if err != nil {
