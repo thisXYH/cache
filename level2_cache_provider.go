@@ -23,7 +23,8 @@ type Level2CacheProvider struct {
 	expireTime *Expiration
 }
 
-func NewL2CacheProvider(l1, l2 CacheProvider, expireTime *Expiration) *Level2CacheProvider {
+// NewLevel2CacheProvider 新建一个二级缓存提供器。
+func NewLevel2CacheProvider(l1, l2 CacheProvider, expireTime *Expiration) *Level2CacheProvider {
 	if expireTime == nil {
 		panic(fmt.Errorf("'expireTime' must not be nil"))
 	}
