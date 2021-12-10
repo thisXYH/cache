@@ -1,4 +1,4 @@
-package caching
+package cache
 
 type KeyOperation struct {
 	cp *Operation
