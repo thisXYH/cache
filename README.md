@@ -15,7 +15,8 @@
 go get -u github.com/thisXYH/cache@latest
 ```
 
-## 使用样例
+## 使用示例
+> [base use sample](https://github.com/thisXYH/cache/blob/main/internal/sample_test.go)
 ````go
 package cache_example
 
