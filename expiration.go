@@ -35,7 +35,7 @@ func NewExpiration(baseExpireTime, randomRangeTime time.Duration) *Expiration {
 
 	var randTemp *rand.Rand
 	if randomRangeTime != 0 {
-		randTemp = rand.New(rand.NewSource(time.Now().UnixNano()))
+		randTemp = rand.New(newConcurrentRandSource(time.Now().UnixNano()))
 	}
 
 	return &Expiration{baseExpireTime, randomRangeTime, randTemp}

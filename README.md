@@ -14,6 +14,9 @@
 ```bash
 go get -u github.com/thisXYH/cache@latest
 ```
+## 注意事项
+* redis cahce provider 的测试用例需要自己提供redis连接信息才能测试成功。
+* concurrent rand source 的测试用例是并发测试，可能需要跑多次才能成功。
 
 ## 使用示例
 > [base use sample](https://github.com/thisXYH/cache/blob/main/internal/sample_test.go)
@@ -70,5 +73,3 @@ func doSomething() {
 	// output: 8
 }
 ````
-
-
