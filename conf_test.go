@@ -8,9 +8,9 @@ import (
 
 func getNewEveryTime() *RedisCacheProvider {
 	cli := redis.NewClient(&redis.Options{
-		Addr:     "redis ip:redis port",
-		Password: "redis password", // no password set
-		DB:       0,                // use default DB
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
 
 		// 最大重试次数，-1 不重试
 		// 对于一些非幂等的命令，执行重试是不合理的，比如 incr
