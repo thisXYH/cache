@@ -3,8 +3,12 @@ package cache
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 )
+
+const NoExpiration time.Duration = 0                      // 缓存不过期。
+var CacheExpirationZero *Expiration = NewExpiration(0, 0) // 缓存不过期。
 
 // Expiration 缓存过期时间。
 type Expiration struct {
@@ -14,7 +18,10 @@ type Expiration struct {
 	// 过期时间随机量。
 	randomRangeTime time.Duration
 
-	rand *rand.Rand
+	// 加锁处理线程安全问题。
+	// issue: https://github.com/golang/go/issues/3611 .
+	rand      *rand.Rand
+	randMutex sync.Mutex
 }
 
 // NewExpiration 新建缓存过期时间。
@@ -35,10 +42,10 @@ func NewExpiration(baseExpireTime, randomRangeTime time.Duration) *Expiration {
 
 	var randTemp *rand.Rand
 	if randomRangeTime != 0 {
-		randTemp = rand.New(newConcurrentRandSource(time.Now().UnixNano()))
+		randTemp = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
 
-	return &Expiration{baseExpireTime, randomRangeTime, randTemp}
+	return &Expiration{baseExpireTime, randomRangeTime, randTemp, sync.Mutex{}}
 }
 
 // NewExpirationFromMillisecond 以毫秒为单位创建缓存过期时间。
@@ -61,14 +68,6 @@ func NewExpirationFromHour(baseExpireTime, randomRangeTime int64) *Expiration {
 	return NewExpiration(time.Duration(baseExpireTime)*time.Hour, time.Duration(randomRangeTime)*time.Hour)
 }
 
-func (c Expiration) BaseExpireTime() time.Duration {
-	return c.baseExpireTime
-}
-
-func (c Expiration) RandomRangeTime() time.Duration {
-	return c.randomRangeTime
-}
-
 // NextExpireTime 获取一个新的过期时间，如果存在随机量的话，返回值已经过随机量计算。
 func (c *Expiration) NextExpireTime() time.Duration {
 	if c.baseExpireTime == NoExpiration {
@@ -78,6 +77,9 @@ func (c *Expiration) NextExpireTime() time.Duration {
 	if c.rand == nil {
 		return c.baseExpireTime
 	}
+
+	c.randMutex.Lock()
+	defer c.randMutex.Unlock()
 
 	randomRangeTimeInt := int64(c.randomRangeTime)
 	if c.rand.Int31n(2) == 0 {

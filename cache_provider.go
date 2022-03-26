@@ -4,9 +4,6 @@ import (
 	"time"
 )
 
-const NoExpiration time.Duration = 0                      // 缓存不过期。
-var CacheExpirationZero *Expiration = NewExpiration(0, 0) // 缓存不过期。
-
 // CacheProvider 提供一套缓存语义。
 type CacheProvider interface {
 	// Get 获取指定缓存值。

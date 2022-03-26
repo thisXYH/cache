@@ -24,7 +24,8 @@ type Operation struct {
 	expireTime *Expiration
 
 	// [:unique flag] 部分的拼接元素的个数。
-	// 不支持的拼接类型：Complex64, Complex128, Array, Chan, Func ,Interface, Map, Slice, Struct, UnsafePointer。
+	// 不支持的拼接类型：Complex64, Complex128, Array, Chan, Func ,
+	// Interface, Map, Slice, Struct, UnsafePointer。
 	uniqueFlagLen int
 }
 
