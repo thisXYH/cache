@@ -60,7 +60,7 @@ func TestOperation_oneKeyToStr(t *testing.T) {
 						e = err.(error)
 					}
 				}()
-				g = tt.c.oneKeyToStr(tt.args.v)
+				g = oneKeyToStr(tt.args.v)
 				return
 			}()
 
