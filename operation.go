@@ -68,7 +68,8 @@ func (c *Operation) Key(keys ...interface{}) *KeyOperation {
 	}
 
 	return &KeyOperation{
-		cp:  c,
+		p:   c.cacheProvider,
+		exp: c.expireTime,
 		Key: c.buildCacheKey(keys...),
 	}
 }
@@ -83,10 +84,135 @@ func (c *Operation) buildCacheKey(keys ...interface{}) string {
 
 	for _, v := range keys {
 		sb.WriteString("_")
-		sb.WriteString(c.oneKeyToStr(v))
+		sb.WriteString(oneKeyToStr(v))
 	}
 
 	return sb.String()
+}
+
+// Operation0 表示 key 只由0个元素组成的缓存操作对象。
+type Operation0[TRes any] struct {
+	op Operation
+}
+
+// NewOperation0 类似 NewOperation ，但创建一个 key 只由0个元素组成的缓存操作对象。
+func NewOperation0[TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation0[TRes] {
+	return &Operation0[TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 0, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation0[TRes]) Key() *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(),
+	}
+}
+
+// Operation1 表示 key 只由0个元素组成的缓存操作对象。
+type Operation1[TKey, TRes any] struct {
+	op Operation
+}
+
+// NewOperation1 类似 NewOperation ，但创建一个 key 只由1个元素组成的缓存操作对象。
+func NewOperation1[TKey, TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation1[TKey, TRes] {
+	return &Operation1[TKey, TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 1, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation1[TKey, TRes]) Key(v TKey) *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(v),
+	}
+}
+
+// Operation2 表示 key 只由2个元素组成的缓存操作对象。
+type Operation2[TKey1, TKey2, TRes any] struct {
+	op Operation
+}
+
+// NewOperation2 类似 NewOperation ，但创建一个 key 只由2个元素组成的缓存操作对象。
+func NewOperation2[TKey1, TKey2, TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation2[TKey1, TKey2, TRes] {
+	return &Operation2[TKey1, TKey2, TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 2, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation2[TKey1, TKey2, TRes]) Key(v1 TKey1, v2 TKey2) *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(v1, v2),
+	}
+}
+
+// Operation3 表示 key 只由3个元素组成的缓存操作对象。
+type Operation3[TKey1, TKey2, TKey3, TRes any] struct {
+	op Operation
+}
+
+// NewOperation3 类似 NewOperation ，但创建一个 key 只由3个元素组成的缓存操作对象。
+func NewOperation3[TKey1, TKey2, TKey3, TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation3[TKey1, TKey2, TKey3, TRes] {
+	return &Operation3[TKey1, TKey2, TKey3, TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 3, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation3[TKey1, TKey2, TKey3, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3) *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(v1, v2, v3),
+	}
+}
+
+// Operation4 表示 key 只由4个元素组成的缓存操作对象。
+type Operation4[TKey1, TKey2, TKey3, TKey4, TRes any] struct {
+	op Operation
+}
+
+// NewOperation4 类似 NewOperation ，但创建一个 key 只由4个元素组成的缓存操作对象。
+func NewOperation4[TKey1, TKey2, TKey3, TKey4, TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation4[TKey1, TKey2, TKey3, TKey4, TRes] {
+	return &Operation4[TKey1, TKey2, TKey3, TKey4, TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 4, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation4[TKey1, TKey2, TKey3, TKey4, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4) *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(v1, v2, v3, v4),
+	}
 }
 
 /*
@@ -100,8 +226,8 @@ func (c *Operation) buildCacheKey(keys ...interface{}) string {
 		Struct
 		UnsafePointer
 */
-func (c *Operation) oneKeyToStr(v interface{}) string {
-	v = c.indirect(v)
+func oneKeyToStr(v interface{}) string {
+	v = indirect(v)
 	if v == nil {
 		panic(fmt.Errorf("key flag must not be nil pointer"))
 	}
@@ -127,7 +253,7 @@ func (c *Operation) oneKeyToStr(v interface{}) string {
 }
 
 // indirect 移除间接引用。
-func (*Operation) indirect(a interface{}) interface{} {
+func indirect(a interface{}) interface{} {
 	if a == nil {
 		return nil
 	}

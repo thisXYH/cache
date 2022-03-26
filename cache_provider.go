@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-type any = interface{}
-
 const NoExpiration time.Duration = 0                      // 缓存不过期。
 var CacheExpirationZero *Expiration = NewExpiration(0, 0) // 缓存不过期。
 

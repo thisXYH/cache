@@ -2,6 +2,7 @@ package cache
 
 import (
 	"testing"
+	"time"
 )
 
 func TestOperation_oneKeyToStr(t *testing.T) {
@@ -60,7 +61,7 @@ func TestOperation_oneKeyToStr(t *testing.T) {
 						e = err.(error)
 					}
 				}()
-				g = tt.c.oneKeyToStr(tt.args.v)
+				g = oneKeyToStr(tt.args.v)
 				return
 			}()
 
@@ -77,4 +78,166 @@ func TestOperation_oneKeyToStr(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOperation0(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("string", func(t *testing.T) {
+		op := NewOperation0[string](ns, prefix, provider, CacheExpirationZero)
+		k := op.Key()
+
+		var res string
+		ok, _ := k.TryGet(&res)
+		if ok {
+			t.Fatal("key should not be")
+		}
+
+		k.Set("vv")
+		ok, _ = k.TryGet(&res)
+		if !ok {
+			t.Fatal("key should   be")
+		}
+
+		if res != "vv" {
+			t.Fatal("value mismatch")
+		}
+	})
+}
+
+func TestOperation1(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("int-string", func(t *testing.T) {
+		op := NewOperation1[int, string](ns, prefix, provider, CacheExpirationZero)
+		k := op.Key(100)
+
+		var res string
+		ok, _ := k.TryGet(&res)
+		if ok {
+			t.Fatal("key should not be")
+		}
+
+		k.Set("vv")
+		ok, _ = k.TryGet(&res)
+		if !ok {
+			t.Fatal("key should   be")
+		}
+
+		if res != "vv" {
+			t.Fatal("value mismatch")
+		}
+	})
+
+	t.Run("string-int", func(t *testing.T) {
+		op := NewOperation1[string, int](ns, prefix, provider, CacheExpirationZero)
+		k := op.Key("g")
+
+		var res int
+		ok, _ := k.TryGet(&res)
+		if ok {
+			t.Fatal("key should not be")
+		}
+
+		k.Set(33)
+		ok, _ = k.TryGet(&res)
+		if !ok {
+			t.Fatal("key should   be")
+		}
+
+		if res != 33 {
+			t.Fatal("value mismatch")
+		}
+	})
+}
+
+func TestOperation2(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("int-string-float64", func(t *testing.T) {
+		op := NewOperation2[int, string, float64](ns, prefix, provider, CacheExpirationZero)
+		k := op.Key(100, "gg")
+
+		var res float64
+		ok, _ := k.TryGet(&res)
+		if ok {
+			t.Fatal("key should not be")
+		}
+
+		k.Set(0.5)
+		ok, _ = k.TryGet(&res)
+		if !ok {
+			t.Fatal("key should   be")
+		}
+
+		if res != 0.5 {
+			t.Fatal("value mismatch")
+		}
+	})
+}
+
+func TestOperation3(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("int-string-float64-time", func(t *testing.T) {
+		op := NewOperation3[int, string, float64, time.Time](ns, prefix, provider, CacheExpirationZero)
+		k := op.Key(100, "gg", 1.5)
+
+		var res time.Time
+		ok, _ := k.TryGet(&res)
+		if ok {
+			t.Fatal("key should not be")
+		}
+
+		v := time.Date(2022, 3, 15, 12, 22, 30, 0, time.UTC)
+		k.Set(v)
+		ok, _ = k.TryGet(&res)
+		if !ok {
+			t.Fatal("key should   be")
+		}
+
+		if res != v {
+			t.Fatal("value mismatch")
+		}
+	})
+}
+
+func TestOperation4(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("int-int-string-float64-string", func(t *testing.T) {
+		op := NewOperation4[int, int, string, float64, string](ns, prefix, provider, CacheExpirationZero)
+		k := op.Key(100, 200, "gg", 0.5)
+
+		var res string
+		ok, _ := k.TryGet(&res)
+		if ok {
+			t.Fatal("key should not be")
+		}
+
+		k.Set("vv")
+		ok, _ = k.TryGet(&res)
+		if !ok {
+			t.Fatal("key should   be")
+		}
+
+		if res != "vv" {
+			t.Fatal("value mismatch")
+		}
+	})
 }
