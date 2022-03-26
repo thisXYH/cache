@@ -3,7 +3,6 @@ package cache
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"reflect"
 	"runtime"
@@ -224,46 +223,6 @@ func TestRedisCacheProvider_Get(t *testing.T) {
 	}
 }
 
-func TestRedisCacheProvider_MustGet(t *testing.T) {
-	RedisCacheProviderPrepare()
-	defer RedisCacheProviderClearn()
-
-	p := getNewEveryTime()
-	get_bool := true
-
-	type args struct {
-		key   string
-		value any
-	}
-	tests := []struct {
-		name string
-		cli  *RedisCacheProvider
-		args args
-	}{
-		{"empty_key", p, args{"", &get_bool}},
-		{"empty_ptr", p, args{"bool_true", (*bool)(nil)}},
-		{"not_ptr", p, args{"bool_false", get_bool}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (err error) {
-				defer func() {
-					e := recover()
-					if e != nil {
-						err = e.(error)
-					}
-				}()
-				tt.cli.MustGet(tt.args.key, tt.args.value)
-				return nil
-			}()
-
-			if err == nil {
-				t.Errorf(tt.name)
-			}
-		})
-	}
-}
-
 func TestRedisCacheProvider_TryGet(t *testing.T) {
 	RedisCacheProviderPrepare()
 	defer RedisCacheProviderClearn()
@@ -332,47 +291,6 @@ func TestRedisCacheProvider_Create(t *testing.T) {
 	}
 }
 
-func TestRedisCacheProvider_MustCreate(t *testing.T) {
-	RedisCacheProviderPrepare()
-	defer RedisCacheProviderClearn()
-
-	p := getNewEveryTime()
-	type args struct {
-		key   string
-		value any
-		t     time.Duration
-	}
-	tests := []struct {
-		name string
-		cli  *RedisCacheProvider
-		args args
-	}{
-		{"empty_key", p, args{"", "empty_key", NoExpiration}},
-		{"negative_expireTime", p, args{"negative_expireTime", "negative_expireTime", -1}},
-		{"unsupport_kind_complex", p, args{"unsupport_kind_complex", complex(1, 2), NoExpiration}},
-		{"unsupport_kind_channel", p, args{"unsupport_kind_channel", make(chan int), NoExpiration}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (e error) {
-				defer func() {
-					err := recover()
-					if err != nil {
-						e = err.(error)
-					}
-				}()
-
-				tt.cli.MustCreate(tt.args.key, tt.args.value, tt.args.t)
-				return nil
-			}()
-
-			if err == nil {
-				t.Errorf(tt.name)
-			}
-		})
-	}
-}
-
 func TestRedisCacheProvider_Set(t *testing.T) {
 	p := getNewEveryTime()
 	intv := 1
@@ -429,47 +347,6 @@ func TestRedisCacheProvider_Set(t *testing.T) {
 	}
 
 	RedisCacheProviderClearn()
-}
-
-func TestRedisCacheProvider_MustSet(t *testing.T) {
-	p := getNewEveryTime()
-
-	type args struct {
-		key   string
-		value any
-		t     time.Duration
-	}
-	tests := []struct {
-		name      string
-		cli       *RedisCacheProvider
-		args      args
-		wantPanic bool
-	}{
-		{"empty_key", p, args{"", "empty_key", NoExpiration}, true},
-		{"negative_expireTime", p, args{"negative_expireTime", "negative_expireTime", -1}, true},
-		{"unsupport_kind_complex", p, args{"unsupport_kind_complex", complex(1, 2), NoExpiration}, true},
-		{"unsupport_kind_channel", p, args{"unsupport_kind_channel", make(chan int), NoExpiration}, true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (e error) {
-				defer func() {
-					err := recover()
-					if err != nil {
-						e = err.(error)
-					}
-				}()
-				tt.cli.MustSet(tt.args.key, tt.args.value, tt.args.t)
-				return nil
-			}()
-
-			log.Println(tt.name, ":", err)
-
-			if tt.wantPanic && err == nil {
-				t.Fail()
-			}
-		})
-	}
 }
 
 func TestRedisCacheProvider_Remove(t *testing.T) {
@@ -533,40 +410,6 @@ func TestRedisCacheProvider_Remove(t *testing.T) {
 	}
 }
 
-func TestRedisCacheProvider_MustRemove(t *testing.T) {
-	RedisCacheProviderPrepare()
-	defer RedisCacheProviderClearn()
-
-	p := getNewEveryTime()
-	type args struct {
-		key string
-	}
-	tests := []struct {
-		name string
-		cli  *RedisCacheProvider
-		args args
-	}{
-		{"empty_key", p, args{""}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (e error) {
-				defer func() {
-					err := recover()
-					if err != nil {
-						e = err.(error)
-					}
-				}()
-				tt.cli.MustRemove(tt.args.key)
-				return nil
-			}()
-			if err == nil {
-				t.Errorf(tt.name)
-			}
-		})
-	}
-}
-
 // TestRedisCacheProvider_Increase
 // 因为是通过事务实现的，主要测试并发，事务的完整性
 // 主要点：程序中的成功 必须等于 redis中的成功。
@@ -603,41 +446,6 @@ func TestRedisCacheProvider_Increase(t *testing.T) {
 	}
 }
 
-func TestRedisCacheProvider_MustIncrease(t *testing.T) {
-	p := getNewEveryTime()
-	p.Set("not_number", "not number", 10*time.Second)
-
-	type args struct {
-		key string
-	}
-	tests := []struct {
-		name string
-		cli  *RedisCacheProvider
-		args args
-	}{
-		{"not_number", p, args{"not_number"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			err := func() (e error) {
-				defer func() {
-					err := recover()
-					if err != nil {
-						e = err.(error)
-					}
-				}()
-				tt.cli.MustIncrease(tt.args.key)
-				return nil
-			}()
-
-			if err == nil {
-				t.Errorf(tt.name)
-			}
-		})
-	}
-}
-
 func TestRedisCacheProvider_IncreaseOrCreate(t *testing.T) {
 	p := getNewEveryTime()
 	key := "key_" + fmt.Sprint(rand.Int31())
@@ -652,44 +460,8 @@ func TestRedisCacheProvider_IncreaseOrCreate(t *testing.T) {
 	}
 
 	after := 0
-	p.MustGet(key, &after)
+	p.Get(key, &after)
 	if after != 20 {
 		t.Errorf("IncreaseOrCreate: number error, %d", after)
-	}
-}
-
-func TestRedisCacheProvider_MustIncreaseOrCreate(t *testing.T) {
-	p := getNewEveryTime()
-	p.Set("not_number", "not number", 10*time.Second)
-
-	type args struct {
-		key       string
-		increment int64
-		t         time.Duration
-	}
-	tests := []struct {
-		name string
-		cli  *RedisCacheProvider
-		args args
-	}{
-		{"not_number", p, args{"not_number", 10, 1 * time.Minute}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (e error) {
-				defer func() {
-					err := recover()
-					if err != nil {
-						e = err.(error)
-					}
-				}()
-				tt.cli.MustIncreaseOrCreate(tt.args.key, tt.args.increment, tt.args.t)
-				return nil
-			}()
-
-			if err == nil {
-				t.Errorf(tt.name)
-			}
-		})
 	}
 }

@@ -16,7 +16,8 @@ type MemoryCacheProvider struct {
 	mu    sync.RWMutex
 }
 
-// NewMemoryCacheProvider.
+// NewMemoryCacheProvider 用来获取内存缓存提供器。
+//  @cleanupInterval: 缓存 key 的过期清理周期，必须大于 1 秒。
 func NewMemoryCacheProvider(cleanupInterval time.Duration) *MemoryCacheProvider {
 	// 限制清理周期 >= 1 sec 防止负载过高，以及锁缓存。
 	if cleanupInterval < time.Second {
@@ -34,14 +35,6 @@ func (cp *MemoryCacheProvider) Get(key string, value any) error {
 	_, err := cp.TryGet(key, value)
 
 	return err
-}
-
-// implement CacheProvider.MustGet .
-func (cp *MemoryCacheProvider) MustGet(key string, value any) {
-	err := cp.Get(key, value)
-	if err != nil {
-		panic(err)
-	}
 }
 
 // implement CacheProvider.TryGet .
@@ -87,16 +80,6 @@ func (cp *MemoryCacheProvider) Create(key string, value any, t time.Duration) (b
 	return true, nil
 }
 
-// implement CacheProvider.MustCreate .
-func (cp *MemoryCacheProvider) MustCreate(key string, value any, t time.Duration) bool {
-	v, err := cp.Create(key, value, t)
-	if err != nil {
-		panic(err)
-	}
-
-	return v
-}
-
 // implement CacheProvider.Set .
 func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error {
 	if key == "" {
@@ -110,14 +93,6 @@ func (cp *MemoryCacheProvider) Set(key string, value any, t time.Duration) error
 	return nil
 }
 
-// implement CacheProvider.MustSet .
-func (cp *MemoryCacheProvider) MustSet(key string, value any, t time.Duration) {
-	err := cp.Set(key, value, t)
-	if err != nil {
-		panic(err)
-	}
-}
-
 // implement CacheProvider.Remove .
 func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
 	if key == "" {
@@ -129,15 +104,6 @@ func (cp *MemoryCacheProvider) Remove(key string) (bool, error) {
 	_, exists := cp.cache.Get(key)
 	cp.cache.Delete(key)
 	return exists, nil
-}
-
-// implement CacheProvider.MustRemove .
-func (cp *MemoryCacheProvider) MustRemove(key string) bool {
-	v, err := cp.Remove(key)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
 
 // implement CacheProvider.Increase .
@@ -179,15 +145,6 @@ func (cp *MemoryCacheProvider) Increase(key string) (int64, error) {
 	return cp.cache.IncrementInt64(key, 1)
 }
 
-// implement CacheProvider.MustIncrease .
-func (cp *MemoryCacheProvider) MustIncrease(key string) int64 {
-	v, err := cp.Increase(key)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 // implement CacheProvider.IncreaseOrCreate .
 func (cp *MemoryCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
 	if key == "" {
@@ -226,15 +183,6 @@ func (cp *MemoryCacheProvider) IncreaseOrCreate(key string, increment int64, t t
 	r := v64 + increment
 	cp.cache.Set(key, r, time.Duration(expireTime.UnixNano()-time.Now().UnixNano()))
 	return r, nil
-}
-
-// implement CacheProvider.MustIncreaseOrCreate .
-func (cp *MemoryCacheProvider) MustIncreaseOrCreate(key string, increment int64, t time.Duration) int64 {
-	v, err := cp.IncreaseOrCreate(key, increment, t)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
 
 func (*MemoryCacheProvider) legalExpireTime(t time.Duration) time.Duration {

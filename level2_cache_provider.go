@@ -38,14 +38,6 @@ func (p *Level2CacheProvider) Get(key string, value any) error {
 	return err
 }
 
-// implement CacheProvider.MustGet .
-func (p *Level2CacheProvider) MustGet(key string, value any) {
-	err := p.Get(key, value)
-	if err != nil {
-		panic(err)
-	}
-}
-
 // implement CacheProvider.TryGet .
 func (p *Level2CacheProvider) TryGet(key string, value any) (result bool, err error) {
 	if result, err = p.level1.TryGet(key, value); err != nil || result {
@@ -77,15 +69,6 @@ func (p *Level2CacheProvider) Create(key string, value any, t time.Duration) (re
 	return true, nil
 }
 
-// implement CacheProvider.MustCreate .
-func (p *Level2CacheProvider) MustCreate(key string, value any, t time.Duration) bool {
-	result, err := p.Create(key, value, t)
-	if err != nil {
-		panic(err)
-	}
-	return result
-}
-
 // implement CacheProvider.Set .
 func (p *Level2CacheProvider) Set(key string, value any, t time.Duration) error {
 	err := p.level2.Set(key, value, t)
@@ -97,14 +80,6 @@ func (p *Level2CacheProvider) Set(key string, value any, t time.Duration) error 
 	return err
 }
 
-// implement CacheProvider.MustSet .
-func (p *Level2CacheProvider) MustSet(key string, value any, t time.Duration) {
-	err := p.Set(key, value, t)
-	if err != nil {
-		panic(err)
-	}
-}
-
 // implement CacheProvider.Remove .
 func (p *Level2CacheProvider) Remove(key string) (bool, error) {
 	result, err := p.level2.Remove(key)
@@ -114,33 +89,14 @@ func (p *Level2CacheProvider) Remove(key string) (bool, error) {
 	return result, err
 }
 
-// implement CacheProvider.MustRemove .
-func (p *Level2CacheProvider) MustRemove(key string) bool {
-	v, err := p.Remove(key)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// implement CacheProvider.Increase, not implemented, will panic!
+// implement CacheProvider.Increase, not supported, will panic!
 func (p *Level2CacheProvider) Increase(key string) (int64, error) {
-	panic("not implemented")
+	panic("not supported")
 }
 
-// implement CacheProvider.MustIncrease, not implemented, will panic!
-func (p *Level2CacheProvider) MustIncrease(key string) int64 {
-	panic("not implemented")
-}
-
-// implement CacheProvider.IncreaseOrCreate, not implemented, will panic!
+// implement CacheProvider.IncreaseOrCreate, not supported, will panic!
 func (p *Level2CacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
-	panic("not implemented")
-}
-
-// implement CacheProvider.MustIncreaseOrCreate, not implemented, will panic!
-func (p *Level2CacheProvider) MustIncreaseOrCreate(key string, increment int64, t time.Duration) int64 {
-	panic("not implemented")
+	panic("not supported")
 }
 
 // setLevel1 is set cache for Level 1.

@@ -32,13 +32,6 @@ func (cli *RedisCacheProvider) Get(key string, value any) error {
 	return err
 }
 
-// implement CacheProvider.MustGet .
-func (cli *RedisCacheProvider) MustGet(key string, value any) {
-	if err := cli.Get(key, value); err != nil {
-		panic(err)
-	}
-}
-
 // implement CacheProvider.TryGet .
 func (cli *RedisCacheProvider) TryGet(key string, value any) (bool, error) {
 	if key == "" {
@@ -76,15 +69,6 @@ func (cli *RedisCacheProvider) Create(key string, value any, t time.Duration) (b
 	return cmd.Result()
 }
 
-// implement CacheProvider.MustCreate .
-func (cli *RedisCacheProvider) MustCreate(key string, value any, t time.Duration) bool {
-	v, err := cli.Create(key, value, t)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 // implement CacheProvider.Set .
 func (cli *RedisCacheProvider) Set(key string, value any, t time.Duration) error {
 	if key == "" {
@@ -110,13 +94,6 @@ func (cli *RedisCacheProvider) Set(key string, value any, t time.Duration) error
 	return nil
 }
 
-// implement CacheProvider.MustSet .
-func (cli *RedisCacheProvider) MustSet(key string, value any, t time.Duration) {
-	if err := cli.Set(key, value, t); err != nil {
-		panic(err)
-	}
-}
-
 // implement CacheProvider.Remove .
 func (cli *RedisCacheProvider) Remove(key string) (bool, error) {
 	if key == "" {
@@ -133,15 +110,6 @@ func (cli *RedisCacheProvider) Remove(key string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-// implement CacheProvider.MustRemove .
-func (cli *RedisCacheProvider) MustRemove(key string) bool {
-	v, err := cli.Remove(key)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
 
 // implement CacheProvider.Increase .
@@ -195,15 +163,6 @@ func (cli *RedisCacheProvider) Increase(key string) (int64, error) {
 	return 0, fmt.Errorf("increment reached maximum number of retries(%d)", MaxRetries)
 }
 
-// implement CacheProvider.MustIncrease .
-func (cli *RedisCacheProvider) MustIncrease(key string) int64 {
-	v, err := cli.Increase(key)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 // implement CacheProvider.IncreaseOrCreate .
 func (cli *RedisCacheProvider) IncreaseOrCreate(key string, increment int64, t time.Duration) (int64, error) {
 	if key == "" {
@@ -222,13 +181,4 @@ func (cli *RedisCacheProvider) IncreaseOrCreate(key string, increment int64, t t
 	}
 
 	return v, err
-}
-
-// implement CacheProvider.MustIncreaseOrCreate .
-func (cli *RedisCacheProvider) MustIncreaseOrCreate(key string, increment int64, t time.Duration) int64 {
-	v, err := cli.IncreaseOrCreate(key, increment, t)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }

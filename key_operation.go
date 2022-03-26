@@ -16,13 +16,25 @@ func (keyOp *KeyOperation) Get(value any) error {
 
 // MustGet 是 Get 的 panic 版。
 func (keyOp *KeyOperation) MustGet(value any) {
-	keyOp.p.MustGet(keyOp.Key, value)
+	err := keyOp.p.Get(keyOp.Key, value)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // TryGet 尝试获取指定缓存。
 // 若key存在，value被更新成对应值，返回true，反之value值不做改变，返回false。
 func (keyOp *KeyOperation) TryGet(value any) (bool, error) {
 	return keyOp.p.TryGet(keyOp.Key, value)
+}
+
+// MustTryGet 是 TryGet 的 panic 版。
+func (keyOp *KeyOperation) MustTryGet(value any) bool {
+	result, err := keyOp.p.TryGet(keyOp.Key, value)
+	if err != nil {
+		panic(err)
+	}
+	return result
 }
 
 // Create 仅当缓存键不存在时，创建缓存。
@@ -33,7 +45,11 @@ func (keyOp *KeyOperation) Create(value any) (bool, error) {
 
 // MustCreate 是 Create 的 panic 版。
 func (keyOp *KeyOperation) MustCreate(value any) bool {
-	return keyOp.p.MustCreate(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	result, err := keyOp.p.Create(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	if err != nil {
+		panic(err)
+	}
+	return result
 }
 
 // Set 设置或者更新缓存。
@@ -43,7 +59,10 @@ func (keyOp *KeyOperation) Set(value any) error {
 
 // MustSet 是 Set 的 panic 版。
 func (keyOp *KeyOperation) MustSet(value any) {
-	keyOp.p.MustSet(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	err := keyOp.p.Set(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Remove 移除指定缓存,
@@ -54,7 +73,11 @@ func (keyOp *KeyOperation) Remove() (bool, error) {
 
 // MustRemove 是 Remove 的 panic 版。
 func (keyOp *KeyOperation) MustRemove() bool {
-	return keyOp.p.MustRemove(keyOp.Key)
+	result, err := keyOp.p.Remove(keyOp.Key)
+	if err != nil {
+		panic(err)
+	}
+	return result
 }
 
 // GenericKeyOperation 是泛型版本的 KeyOperation 。
@@ -74,7 +97,10 @@ func (keyOp *GenericKeyOperation[T]) Get(value *T) error {
 
 // MustGet 是 Get 的 panic 版。
 func (keyOp *GenericKeyOperation[T]) MustGet(value *T) {
-	keyOp.p.MustGet(keyOp.Key, value)
+	err := keyOp.p.Get(keyOp.Key, value)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // TryGet 尝试获取指定缓存。
@@ -91,7 +117,11 @@ func (keyOp *GenericKeyOperation[T]) Create(value T) (bool, error) {
 
 // MustCreate 是 Create 的 panic 版。
 func (keyOp *GenericKeyOperation[T]) MustCreate(value T) bool {
-	return keyOp.p.MustCreate(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	result, err := keyOp.p.Create(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	if err != nil {
+		panic(err)
+	}
+	return result
 }
 
 // Set 设置或者更新缓存。
@@ -101,7 +131,10 @@ func (keyOp *GenericKeyOperation[T]) Set(value T) error {
 
 // MustSet 是 Set 的 panic 版。
 func (keyOp *GenericKeyOperation[T]) MustSet(value T) {
-	keyOp.p.MustSet(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	err := keyOp.p.Set(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Remove 移除指定缓存,
@@ -112,5 +145,9 @@ func (keyOp *GenericKeyOperation[T]) Remove() (bool, error) {
 
 // MustRemove 是 Remove 的 panic 版。
 func (keyOp *GenericKeyOperation[T]) MustRemove() bool {
-	return keyOp.p.MustRemove(keyOp.Key)
+	result, err := keyOp.p.Remove(keyOp.Key)
+	if err != nil {
+		panic(err)
+	}
+	return result
 }

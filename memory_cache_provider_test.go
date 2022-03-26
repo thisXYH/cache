@@ -204,44 +204,6 @@ func TestMemoryCacheProvider_Get(t *testing.T) {
 	}
 }
 
-func TestMemoryCacheProvider_MustGet(t *testing.T) {
-	MemoryCacheProviderPrepare()
-	defer MemoryCacheProviderClearn()
-
-	get_bool := true
-	type args struct {
-		key   string
-		value any
-	}
-	tests := []struct {
-		name string
-		cp   *MemoryCacheProvider
-		args args
-	}{
-		{"empty_key", mp, args{"", &get_bool}},
-		{"empty_ptr", mp, args{"bool_true", (*bool)(nil)}},
-		{"not_ptr", mp, args{"bool_false", get_bool}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (err error) {
-				defer func() {
-					e := recover()
-					if e != nil {
-						err = e.(error)
-					}
-				}()
-				tt.cp.MustGet(tt.args.key, tt.args.value)
-				return nil
-			}()
-
-			if err == nil {
-				t.Errorf(tt.name)
-			}
-		})
-	}
-}
-
 func TestMemoryCacheProvider_TryGet(t *testing.T) {
 	mp.Set("bool_true", true, NoExpiration)
 
@@ -306,41 +268,6 @@ func TestMemoryCacheProvider_Create(t *testing.T) {
 	}
 }
 
-func TestMemoryCacheProvider_MustCreate(t *testing.T) {
-	type args struct {
-		key   string
-		value any
-		t     time.Duration
-	}
-	tests := []struct {
-		name string
-		cp   *MemoryCacheProvider
-		args args
-	}{
-		{"empty_key", mp, args{"", "empty_key", NoExpiration}},
-		{"negative_expireTime", mp, args{"negative_expireTime", "negative_expireTime", -1}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (e error) {
-				defer func() {
-					err := recover()
-					if err != nil {
-						e = err.(error)
-					}
-				}()
-
-				tt.cp.MustCreate(tt.args.key, tt.args.value, tt.args.t)
-				return nil
-			}()
-
-			if err == nil {
-				t.Errorf(tt.name)
-			}
-		})
-	}
-}
-
 func TestMemoryCacheProvider_Set(t *testing.T) {
 	defer MemoryCacheProviderClearn()
 
@@ -398,41 +325,6 @@ func TestMemoryCacheProvider_Set(t *testing.T) {
 	}
 }
 
-func TestMemoryCacheProvider_MustSet(t *testing.T) {
-	type args struct {
-		key   string
-		value any
-		t     time.Duration
-	}
-	tests := []struct {
-		name      string
-		cp        *MemoryCacheProvider
-		args      args
-		wantPanic bool
-	}{
-		{"empty_key", mp, args{"", "empty_key", NoExpiration}, true},
-		{"negative_expireTime", mp, args{"negative_expireTime", "negative_expireTime", -1}, true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (e error) {
-				defer func() {
-					err := recover()
-					if err != nil {
-						e = err.(error)
-					}
-				}()
-				tt.cp.MustSet(tt.args.key, tt.args.value, tt.args.t)
-				return nil
-			}()
-
-			if tt.wantPanic && err == nil {
-				t.Fail()
-			}
-		})
-	}
-}
-
 func TestMemoryCacheProvider_Remove(t *testing.T) {
 	mp.Set("remov_exists_key", 1, NoExpiration)
 	type args struct {
@@ -457,36 +349,6 @@ func TestMemoryCacheProvider_Remove(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("MemoryCacheProvider.Remove() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestMemoryCacheProvider_MustRemove(t *testing.T) {
-	type args struct {
-		key string
-	}
-	tests := []struct {
-		name string
-		cp   *MemoryCacheProvider
-		args args
-	}{
-		{"empty_key", mp, args{""}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := func() (e error) {
-				defer func() {
-					err := recover()
-					if err != nil {
-						e = err.(error)
-					}
-				}()
-				tt.cp.MustRemove(tt.args.key)
-				return nil
-			}()
-			if err == nil {
-				t.Errorf(tt.name)
 			}
 		})
 	}
