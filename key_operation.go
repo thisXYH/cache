@@ -90,23 +90,38 @@ type GenericKeyOperation[T any] struct {
 }
 
 // Get 获取指定缓存值。
-// 如果key存在，value被更新成对应值， 反之value值不做改变。
-func (keyOp *GenericKeyOperation[T]) Get(value *T) error {
-	return keyOp.p.Get(keyOp.Key, value)
+func (keyOp *GenericKeyOperation[T]) Get() (T, error) {
+	var v T
+	err := keyOp.p.Get(keyOp.Key, &v)
+	return v, err
 }
 
 // MustGet 是 Get 的 panic 版。
-func (keyOp *GenericKeyOperation[T]) MustGet(value *T) {
-	err := keyOp.p.Get(keyOp.Key, value)
+func (keyOp *GenericKeyOperation[T]) MustGet() T {
+	v, err := keyOp.Get()
 	if err != nil {
 		panic(err)
 	}
+	return v
 }
 
 // TryGet 尝试获取指定缓存。
 // 若key存在，value被更新成对应值，返回true，反之value值不做改变，返回false。
-func (keyOp *GenericKeyOperation[T]) TryGet(value *T) (bool, error) {
-	return keyOp.p.TryGet(keyOp.Key, value)
+func (keyOp *GenericKeyOperation[T]) TryGet() (T, bool, error) {
+	var v T
+	result, err := keyOp.p.TryGet(keyOp.Key, &v)
+	return v, result, err
+
+}
+
+// MustTryGet 是 TryGet 的 panic 版。
+func (keyOp *GenericKeyOperation[T]) MustTryGet() (T, bool) {
+	var v T
+	result, err := keyOp.p.TryGet(keyOp.Key, &v)
+	if err != nil {
+		panic(err)
+	}
+	return v, result
 }
 
 // Create 仅当缓存键不存在时，创建缓存。
@@ -117,7 +132,7 @@ func (keyOp *GenericKeyOperation[T]) Create(value T) (bool, error) {
 
 // MustCreate 是 Create 的 panic 版。
 func (keyOp *GenericKeyOperation[T]) MustCreate(value T) bool {
-	result, err := keyOp.p.Create(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	result, err := keyOp.Create(value)
 	if err != nil {
 		panic(err)
 	}
@@ -131,7 +146,7 @@ func (keyOp *GenericKeyOperation[T]) Set(value T) error {
 
 // MustSet 是 Set 的 panic 版。
 func (keyOp *GenericKeyOperation[T]) MustSet(value T) {
-	err := keyOp.p.Set(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	err := keyOp.Set(value)
 	if err != nil {
 		panic(err)
 	}
@@ -145,7 +160,7 @@ func (keyOp *GenericKeyOperation[T]) Remove() (bool, error) {
 
 // MustRemove 是 Remove 的 panic 版。
 func (keyOp *GenericKeyOperation[T]) MustRemove() bool {
-	result, err := keyOp.p.Remove(keyOp.Key)
+	result, err := keyOp.Remove()
 	if err != nil {
 		panic(err)
 	}

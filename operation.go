@@ -217,6 +217,106 @@ func (c *Operation4[TKey1, TKey2, TKey3, TKey4, TRes]) Key(v1 TKey1, v2 TKey2, v
 	}
 }
 
+// Operation5 表示 key 只由5个元素组成的缓存操作对象。
+type Operation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes any] struct {
+	op Operation
+}
+
+// NewOperation5 类似 NewOperation ，但创建一个 key 只由5个元素组成的缓存操作对象。
+func NewOperation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes] {
+	return &Operation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 5, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5) *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(v1, v2, v3, v4, v5),
+	}
+}
+
+// Operation6 表示 key 只由6个元素组成的缓存操作对象。
+type Operation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes any] struct {
+	op Operation
+}
+
+// NewOperation6 类似 NewOperation ，但创建一个 key 只由6个元素组成的缓存操作对象。
+func NewOperation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes] {
+	return &Operation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 6, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6) *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(v1, v2, v3, v4, v5, v6),
+	}
+}
+
+// Operation7 表示 key 只由7个元素组成的缓存操作对象。
+type Operation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes any] struct {
+	op Operation
+}
+
+// NewOperation7 类似 NewOperation ，但创建一个 key 只由7个元素组成的缓存操作对象。
+func NewOperation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes] {
+	return &Operation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 7, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6, v7 TKey7) *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(v1, v2, v3, v4, v5, v6, v7),
+	}
+}
+
+// Operation8 表示 key 只由8个元素组成的缓存操作对象。
+type Operation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes any] struct {
+	op Operation
+}
+
+// NewOperation8 类似 NewOperation ，但创建一个 key 只由8个元素组成的缓存操作对象。
+func NewOperation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes any](
+	cacheNamespace, keyPrefix string,
+	cacheProvider CacheProvider,
+	expireTime *Expiration,
+) *Operation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes] {
+	return &Operation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes]{
+		*NewOperation(cacheNamespace, keyPrefix, 8, cacheProvider, expireTime),
+	}
+}
+
+// Key 获取指定key的缓存操作对象。
+func (c *Operation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6, v7 TKey7, v8 TKey8) *GenericKeyOperation[TRes] {
+	return &GenericKeyOperation[TRes]{
+		p:   c.op.cacheProvider,
+		exp: c.op.expireTime,
+		Key: c.op.buildCacheKey(v1, v2, v3, v4, v5, v6, v7, v8),
+	}
+}
+
 /*
 	不支持的type
 		Array

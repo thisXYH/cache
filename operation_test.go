@@ -91,13 +91,13 @@ func TestOperation0(t *testing.T) {
 		k := op.Key()
 
 		var res string
-		ok, _ := k.TryGet(&res)
+		res, ok, _ := k.TryGet()
 		if ok {
 			t.Fatal("key should not be")
 		}
 
 		k.Set("vv")
-		ok, _ = k.TryGet(&res)
+		res, ok, _ = k.TryGet()
 		if !ok {
 			t.Fatal("key should   be")
 		}
@@ -118,14 +118,13 @@ func TestOperation1(t *testing.T) {
 		op := NewOperation1[int, string](ns, prefix, provider, CacheExpirationZero)
 		k := op.Key(100)
 
-		var res string
-		ok, _ := k.TryGet(&res)
+		res, ok, _ := k.TryGet()
 		if ok {
 			t.Fatal("key should not be")
 		}
 
 		k.Set("vv")
-		ok, _ = k.TryGet(&res)
+		res, ok, _ = k.TryGet()
 		if !ok {
 			t.Fatal("key should   be")
 		}
@@ -139,14 +138,13 @@ func TestOperation1(t *testing.T) {
 		op := NewOperation1[string, int](ns, prefix, provider, CacheExpirationZero)
 		k := op.Key("g")
 
-		var res int
-		ok, _ := k.TryGet(&res)
+		res, ok, _ := k.TryGet()
 		if ok {
 			t.Fatal("key should not be")
 		}
 
 		k.Set(33)
-		ok, _ = k.TryGet(&res)
+		res, ok, _ = k.TryGet()
 		if !ok {
 			t.Fatal("key should   be")
 		}
@@ -167,14 +165,13 @@ func TestOperation2(t *testing.T) {
 		op := NewOperation2[int, string, float64](ns, prefix, provider, CacheExpirationZero)
 		k := op.Key(100, "gg")
 
-		var res float64
-		ok, _ := k.TryGet(&res)
+		res, ok, _ := k.TryGet()
 		if ok {
 			t.Fatal("key should not be")
 		}
 
 		k.Set(0.5)
-		ok, _ = k.TryGet(&res)
+		res, ok, _ = k.TryGet()
 		if !ok {
 			t.Fatal("key should   be")
 		}
@@ -195,15 +192,14 @@ func TestOperation3(t *testing.T) {
 		op := NewOperation3[int, string, float64, time.Time](ns, prefix, provider, CacheExpirationZero)
 		k := op.Key(100, "gg", 1.5)
 
-		var res time.Time
-		ok, _ := k.TryGet(&res)
+		res, ok, _ := k.TryGet()
 		if ok {
 			t.Fatal("key should not be")
 		}
 
 		v := time.Date(2022, 3, 15, 12, 22, 30, 0, time.UTC)
 		k.Set(v)
-		ok, _ = k.TryGet(&res)
+		res, ok, _ = k.TryGet()
 		if !ok {
 			t.Fatal("key should   be")
 		}
@@ -225,13 +221,13 @@ func TestOperation4(t *testing.T) {
 		k := op.Key(100, 200, "gg", 0.5)
 
 		var res string
-		ok, _ := k.TryGet(&res)
+		res, ok, _ := k.TryGet()
 		if ok {
 			t.Fatal("key should not be")
 		}
 
 		k.Set("vv")
-		ok, _ = k.TryGet(&res)
+		res, ok, _ = k.TryGet()
 		if !ok {
 			t.Fatal("key should   be")
 		}
