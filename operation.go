@@ -92,6 +92,15 @@ func (c *Operation) buildCacheKey(keys ...interface{}) string {
 	return sb.String()
 }
 
+type UniqueFlag interface {
+	~bool | string |
+		~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
+		~float32 | ~float64 |
+
+		time.Time | UnixTime
+}
+
 // Operation0 表示 key 只由0个元素组成的缓存操作对象。
 type Operation0[TRes any] struct {
 	op Operation
@@ -118,12 +127,12 @@ func (c *Operation0[TRes]) Key() *KeyOperationT[TRes] {
 }
 
 // Operation1 表示 key 只由0个元素组成的缓存操作对象。
-type Operation1[TKey, TRes any] struct {
+type Operation1[TKey UniqueFlag, TRes any] struct {
 	op Operation
 }
 
 // NewOperation1 类似 NewOperation ，但创建一个 key 只由1个元素组成的缓存操作对象。
-func NewOperation1[TKey, TRes any](
+func NewOperation1[TKey UniqueFlag, TRes any](
 	cacheNamespace, keyPrefix string,
 	cacheProvider CacheProvider,
 	expireTime *Expiration,
@@ -143,12 +152,12 @@ func (c *Operation1[TKey, TRes]) Key(v TKey) *KeyOperationT[TRes] {
 }
 
 // Operation2 表示 key 只由2个元素组成的缓存操作对象。
-type Operation2[TKey1, TKey2, TRes any] struct {
+type Operation2[TKey1 UniqueFlag, TKey2 UniqueFlag, TRes any] struct {
 	op Operation
 }
 
 // NewOperation2 类似 NewOperation ，但创建一个 key 只由2个元素组成的缓存操作对象。
-func NewOperation2[TKey1, TKey2, TRes any](
+func NewOperation2[TKey1 UniqueFlag, TKey2 UniqueFlag, TRes any](
 	cacheNamespace, keyPrefix string,
 	cacheProvider CacheProvider,
 	expireTime *Expiration,
@@ -168,12 +177,12 @@ func (c *Operation2[TKey1, TKey2, TRes]) Key(v1 TKey1, v2 TKey2) *KeyOperationT[
 }
 
 // Operation3 表示 key 只由3个元素组成的缓存操作对象。
-type Operation3[TKey1, TKey2, TKey3, TRes any] struct {
+type Operation3[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TRes any] struct {
 	op Operation
 }
 
 // NewOperation3 类似 NewOperation ，但创建一个 key 只由3个元素组成的缓存操作对象。
-func NewOperation3[TKey1, TKey2, TKey3, TRes any](
+func NewOperation3[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TRes any](
 	cacheNamespace, keyPrefix string,
 	cacheProvider CacheProvider,
 	expireTime *Expiration,
@@ -193,12 +202,12 @@ func (c *Operation3[TKey1, TKey2, TKey3, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3
 }
 
 // Operation4 表示 key 只由4个元素组成的缓存操作对象。
-type Operation4[TKey1, TKey2, TKey3, TKey4, TRes any] struct {
+type Operation4[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TRes any] struct {
 	op Operation
 }
 
 // NewOperation4 类似 NewOperation ，但创建一个 key 只由4个元素组成的缓存操作对象。
-func NewOperation4[TKey1, TKey2, TKey3, TKey4, TRes any](
+func NewOperation4[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TRes any](
 	cacheNamespace, keyPrefix string,
 	cacheProvider CacheProvider,
 	expireTime *Expiration,
@@ -218,12 +227,12 @@ func (c *Operation4[TKey1, TKey2, TKey3, TKey4, TRes]) Key(v1 TKey1, v2 TKey2, v
 }
 
 // Operation5 表示 key 只由5个元素组成的缓存操作对象。
-type Operation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes any] struct {
+type Operation5[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TKey5 UniqueFlag, TRes any] struct {
 	op Operation
 }
 
 // NewOperation5 类似 NewOperation ，但创建一个 key 只由5个元素组成的缓存操作对象。
-func NewOperation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes any](
+func NewOperation5[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TKey5 UniqueFlag, TRes any](
 	cacheNamespace, keyPrefix string,
 	cacheProvider CacheProvider,
 	expireTime *Expiration,
@@ -243,12 +252,12 @@ func (c *Operation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes]) Key(v1 TKey1, v2 T
 }
 
 // Operation6 表示 key 只由6个元素组成的缓存操作对象。
-type Operation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes any] struct {
+type Operation6[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TKey5 UniqueFlag, TKey6 UniqueFlag, TRes any] struct {
 	op Operation
 }
 
 // NewOperation6 类似 NewOperation ，但创建一个 key 只由6个元素组成的缓存操作对象。
-func NewOperation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes any](
+func NewOperation6[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TKey5 UniqueFlag, TKey6 UniqueFlag, TRes any](
 	cacheNamespace, keyPrefix string,
 	cacheProvider CacheProvider,
 	expireTime *Expiration,
@@ -268,12 +277,12 @@ func (c *Operation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes]) Key(v1 TKey
 }
 
 // Operation7 表示 key 只由7个元素组成的缓存操作对象。
-type Operation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes any] struct {
+type Operation7[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TKey5 UniqueFlag, TKey6 UniqueFlag, TKey7 UniqueFlag, TRes any] struct {
 	op Operation
 }
 
 // NewOperation7 类似 NewOperation ，但创建一个 key 只由7个元素组成的缓存操作对象。
-func NewOperation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes any](
+func NewOperation7[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TKey5 UniqueFlag, TKey6 UniqueFlag, TKey7 UniqueFlag, TRes any](
 	cacheNamespace, keyPrefix string,
 	cacheProvider CacheProvider,
 	expireTime *Expiration,
@@ -293,12 +302,12 @@ func (c *Operation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes]) Key(
 }
 
 // Operation8 表示 key 只由8个元素组成的缓存操作对象。
-type Operation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes any] struct {
+type Operation8[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TKey5 UniqueFlag, TKey6 UniqueFlag, TKey7 UniqueFlag, TKey8 UniqueFlag, TRes any] struct {
 	op Operation
 }
 
 // NewOperation8 类似 NewOperation ，但创建一个 key 只由8个元素组成的缓存操作对象。
-func NewOperation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes any](
+func NewOperation8[TKey1 UniqueFlag, TKey2 UniqueFlag, TKey3 UniqueFlag, TKey4 UniqueFlag, TKey5 UniqueFlag, TKey6 UniqueFlag, TKey7 UniqueFlag, TKey8 UniqueFlag, TRes any](
 	cacheNamespace, keyPrefix string,
 	cacheProvider CacheProvider,
 	expireTime *Expiration,
