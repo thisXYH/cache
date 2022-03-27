@@ -1,7 +1,7 @@
 github.com/cespare/xxhash/v2 v2.1.1 h1:6MnRN8NT7+YBpUIWxHtefFZOKTAPgGjpQSxqLNn0+qY=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cmstar/go-conv v0.2.0 h1:F/04fy4Nml6AU6YKeRf9qALIVXdxNUZxAmcBxVPK0+4=
-github.com/cmstar/go-conv v0.2.0/go.mod h1:vc836gwYz4cI2oCWdL/EF514eEjTDpXmTBvfZEELdXs=
+github.com/cmstar/go-conv v0.3.1 h1:3iJSRSrCgFwnzIVSzcXZnLzGoIMwookjgSeHUODwaec=
+github.com/cmstar/go-conv v0.3.1/go.mod h1:vc836gwYz4cI2oCWdL/EF514eEjTDpXmTBvfZEELdXs=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
