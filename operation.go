@@ -31,7 +31,7 @@ type Operation struct {
 // NewOperation 创建一个缓存操作对象。
 // 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]。
 // expireTime: 过期时长， nil 或者 CacheExpirationZero 表不过期。
-// uniqueFlagLen: 指定用来拼接 [:unique flag] 部分的元素个数。
+// uniqueFlagLen: 指定用来拼接 [:unique flag] 部分的元素个数(>=0)。
 // 受支持的 [:unique flag] 类型: bool, int*, uint*, float*, string, time.time, UnixTime 。
 func NewOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider CacheProvider, expireTime *Expiration) *Operation {
 	if cacheNamespace == "" || keyPrefix == "" {
