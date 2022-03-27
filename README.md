@@ -1,7 +1,7 @@
 # cache
 
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://opensource.org/licenses/MIT)
-[![Go Reference](https://pkg.go.dev/github.com/thisXYH/cache.svg)](https://pkg.go.dev/github.com/thisXYH/cache)
+[![Go Reference](https://pkg.go.dev/badge/github.com/thisXYH/cache.svg)](https://pkg.go.dev/github.com/thisXYH/cache)
 
 提供一套缓存操作的语义，以及一些已实现的缓存提供器。
 
@@ -12,7 +12,8 @@
 * 缓存提供器
     * [X] Redis缓存
     * [X] memory缓存
-    * [X] 二级缓存, 不支持Increase。
+    * [X] 二级缓存, 不支持Increase
+* 支持泛型(version >= v1.1.0)
 
 ## 快速开始
 ```bash
