@@ -109,8 +109,8 @@ func NewOperation0[TRes any](
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation0[TRes]) Key() *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation0[TRes]) Key() *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(),
@@ -134,8 +134,8 @@ func NewOperation1[TKey, TRes any](
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation1[TKey, TRes]) Key(v TKey) *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation1[TKey, TRes]) Key(v TKey) *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(v),
@@ -159,8 +159,8 @@ func NewOperation2[TKey1, TKey2, TRes any](
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation2[TKey1, TKey2, TRes]) Key(v1 TKey1, v2 TKey2) *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation2[TKey1, TKey2, TRes]) Key(v1 TKey1, v2 TKey2) *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(v1, v2),
@@ -184,8 +184,8 @@ func NewOperation3[TKey1, TKey2, TKey3, TRes any](
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation3[TKey1, TKey2, TKey3, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3) *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation3[TKey1, TKey2, TKey3, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3) *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(v1, v2, v3),
@@ -209,8 +209,8 @@ func NewOperation4[TKey1, TKey2, TKey3, TKey4, TRes any](
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation4[TKey1, TKey2, TKey3, TKey4, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4) *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation4[TKey1, TKey2, TKey3, TKey4, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4) *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(v1, v2, v3, v4),
@@ -234,8 +234,8 @@ func NewOperation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes any](
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5) *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation5[TKey1, TKey2, TKey3, TKey4, TKey5, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5) *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(v1, v2, v3, v4, v5),
@@ -259,8 +259,8 @@ func NewOperation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes any](
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6) *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation6[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6) *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(v1, v2, v3, v4, v5, v6),
@@ -284,8 +284,8 @@ func NewOperation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes any](
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6, v7 TKey7) *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation7[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6, v7 TKey7) *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(v1, v2, v3, v4, v5, v6, v7),
@@ -309,8 +309,8 @@ func NewOperation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes 
 }
 
 // Key 获取指定key的缓存操作对象。
-func (c *Operation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6, v7 TKey7, v8 TKey8) *GenericKeyOperation[TRes] {
-	return &GenericKeyOperation[TRes]{
+func (c *Operation8[TKey1, TKey2, TKey3, TKey4, TKey5, TKey6, TKey7, TKey8, TRes]) Key(v1 TKey1, v2 TKey2, v3 TKey3, v4 TKey4, v5 TKey5, v6 TKey6, v7 TKey7, v8 TKey8) *KeyOperationT[TRes] {
+	return &KeyOperationT[TRes]{
 		p:   c.op.cacheProvider,
 		exp: c.op.expireTime,
 		Key: c.op.buildCacheKey(v1, v2, v3, v4, v5, v6, v7, v8),

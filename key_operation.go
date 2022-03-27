@@ -80,8 +80,8 @@ func (keyOp *KeyOperation) MustRemove() bool {
 	return result
 }
 
-// GenericKeyOperation 是泛型版本的 KeyOperation 。
-type GenericKeyOperation[T any] struct {
+// KeyOperationT 是泛型版本的 KeyOperation 。
+type KeyOperationT[T any] struct {
 	p   CacheProvider
 	exp *Expiration
 
@@ -90,14 +90,14 @@ type GenericKeyOperation[T any] struct {
 }
 
 // Get 获取指定缓存值。
-func (keyOp *GenericKeyOperation[T]) Get() (T, error) {
+func (keyOp *KeyOperationT[T]) Get() (T, error) {
 	var v T
 	err := keyOp.p.Get(keyOp.Key, &v)
 	return v, err
 }
 
 // MustGet 是 Get 的 panic 版。
-func (keyOp *GenericKeyOperation[T]) MustGet() T {
+func (keyOp *KeyOperationT[T]) MustGet() T {
 	v, err := keyOp.Get()
 	if err != nil {
 		panic(err)
@@ -107,7 +107,7 @@ func (keyOp *GenericKeyOperation[T]) MustGet() T {
 
 // TryGet 尝试获取指定缓存。
 // 若key存在，value被更新成对应值，返回true，反之value值不做改变，返回false。
-func (keyOp *GenericKeyOperation[T]) TryGet() (T, bool, error) {
+func (keyOp *KeyOperationT[T]) TryGet() (T, bool, error) {
 	var v T
 	result, err := keyOp.p.TryGet(keyOp.Key, &v)
 	return v, result, err
@@ -115,7 +115,7 @@ func (keyOp *GenericKeyOperation[T]) TryGet() (T, bool, error) {
 }
 
 // MustTryGet 是 TryGet 的 panic 版。
-func (keyOp *GenericKeyOperation[T]) MustTryGet() (T, bool) {
+func (keyOp *KeyOperationT[T]) MustTryGet() (T, bool) {
 	var v T
 	result, err := keyOp.p.TryGet(keyOp.Key, &v)
 	if err != nil {
@@ -126,12 +126,12 @@ func (keyOp *GenericKeyOperation[T]) MustTryGet() (T, bool) {
 
 // Create 仅当缓存键不存在时，创建缓存。
 //  return: true表示创建了缓存；false说明缓存已经存在了。
-func (keyOp *GenericKeyOperation[T]) Create(value T) (bool, error) {
+func (keyOp *KeyOperationT[T]) Create(value T) (bool, error) {
 	return keyOp.p.Create(keyOp.Key, value, keyOp.exp.NextExpireTime())
 }
 
 // MustCreate 是 Create 的 panic 版。
-func (keyOp *GenericKeyOperation[T]) MustCreate(value T) bool {
+func (keyOp *KeyOperationT[T]) MustCreate(value T) bool {
 	result, err := keyOp.Create(value)
 	if err != nil {
 		panic(err)
@@ -140,12 +140,12 @@ func (keyOp *GenericKeyOperation[T]) MustCreate(value T) bool {
 }
 
 // Set 设置或者更新缓存。
-func (keyOp *GenericKeyOperation[T]) Set(value T) error {
+func (keyOp *KeyOperationT[T]) Set(value T) error {
 	return keyOp.p.Set(keyOp.Key, value, keyOp.exp.NextExpireTime())
 }
 
 // MustSet 是 Set 的 panic 版。
-func (keyOp *GenericKeyOperation[T]) MustSet(value T) {
+func (keyOp *KeyOperationT[T]) MustSet(value T) {
 	err := keyOp.Set(value)
 	if err != nil {
 		panic(err)
@@ -154,12 +154,12 @@ func (keyOp *GenericKeyOperation[T]) MustSet(value T) {
 
 // Remove 移除指定缓存,
 //  return: true成功移除，false缓存不存在。
-func (keyOp *GenericKeyOperation[T]) Remove() (bool, error) {
+func (keyOp *KeyOperationT[T]) Remove() (bool, error) {
 	return keyOp.p.Remove(keyOp.Key)
 }
 
 // MustRemove 是 Remove 的 panic 版。
-func (keyOp *GenericKeyOperation[T]) MustRemove() bool {
+func (keyOp *KeyOperationT[T]) MustRemove() bool {
 	result, err := keyOp.Remove()
 	if err != nil {
 		panic(err)
