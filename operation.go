@@ -24,8 +24,7 @@ type Operation struct {
 	expireTime *Expiration
 
 	// [:unique flag] 部分的拼接元素的个数。
-	// 不支持的拼接类型：Complex64, Complex128, Array, Chan, Func ,
-	// Interface, Map, Slice, Struct, UnsafePointer。
+	// 受支持的 [:unique flag] 类型: bool, int*, uint*, float*, string, time.time, UnixTime 。
 	uniqueFlagLen int
 }
 
@@ -33,6 +32,7 @@ type Operation struct {
 // 缓存key分三段 <CacheNamespace>:<Prefix>[:unique flag]。
 // expireTime: 过期时长， nil 或者 CacheExpirationZero 表不过期。
 // uniqueFlagLen: 指定用来拼接 [:unique flag] 部分的元素个数。
+// 受支持的 [:unique flag] 类型: bool, int*, uint*, float*, string, time.time, UnixTime 。
 func NewOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProvider CacheProvider, expireTime *Expiration) *Operation {
 	if cacheNamespace == "" || keyPrefix == "" {
 		panic(fmt.Errorf(`neither 'cacheNamespace' nor 'keyPrefix' can be zero value`))
@@ -62,7 +62,8 @@ func NewOperation(cacheNamespace, keyPrefix string, uniqueFlagLen int, cacheProv
 	return cp
 }
 
-// Key 获取指定key的缓存操作对象。
+// Key 获取指定key的缓存 key 操作对象。
+//  受支持的 key 类型: bool, int*, uint*, float*, string, time.time, UnixTime 。
 func (c *Operation) Key(keys ...interface{}) *KeyOperation {
 	if len(keys) != c.uniqueFlagLen {
 		panic(fmt.Errorf("param 'keys' len(%d)  != uniqueFlagLen(%d)", len(keys), c.uniqueFlagLen))
