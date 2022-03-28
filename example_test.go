@@ -1,18 +1,16 @@
-package cache_example
+package cache
 
 import (
 	"fmt"
 	"time"
-
-	"github.com/thisXYH/cache"
 )
 
 func ExampleKeyOperation() {
 	// 初始化一个 内存缓存提供器。
-	provider := cache.NewMemoryCacheProvider(time.Second)
+	provider := NewMemoryCacheProvider(time.Second)
 
 	// 初始化一个 缓存操作对象, 通常这个对象会被用作全局, 不需要每次使用都创建。
-	op := cache.NewOperation("ns", "prefix", 2, provider, cache.CacheExpirationZero)
+	op := NewOperation("ns", "prefix", 2, provider, CacheExpirationZero)
 
 	// 根据指定的数量给定 unique flag, 获取对应的缓存 key 操作对象。
 	key := op.Key("a", 1)
@@ -53,12 +51,13 @@ func ExampleKeyOperation() {
 
 func ExampleKeyOperationT() {
 	// 初始化一个 内存缓存提供器。
-	provider := cache.NewMemoryCacheProvider(time.Second)
+	provider := NewMemoryCacheProvider(time.Second)
 
 	// 初始化一个 缓存操作对象, 通常这个对象会被用作全局, 不需要每次使用都创建。
-	op := cache.NewOperation2[string, int, time.Time]("ns", "prefix", provider, cache.CacheExpirationZero)
+	// 指定了 unique flag 有两个，一个是 string 、一个是 int 。
+	op := NewOperation2[string, int, time.Time]("ns", "prefix", provider, CacheExpirationZero)
 
-	// 根据指定的数量给定 unique flag, 获取对应的缓存 key 操作对象。
+	// 根据 unique flag, 获取对应的缓存 key 操作对象。
 	key := op.Key("a", 1)
 	fmt.Println(key.Key)
 

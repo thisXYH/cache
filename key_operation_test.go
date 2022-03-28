@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -15,9 +14,18 @@ func TestKeyOperation(t *testing.T) {
 		op := NewOperation(ns, prefix, 2, provider, CacheExpirationZero)
 
 		key := op.Key("a", 1)
-		fmt.Println(key.Key)
+		if key.Key != "ns:prefix_a_1" {
+			t.Fatal("error cache key be generated")
+		}
 
+		var timeDefaultValue time.Time
 		var res time.Time
+
+		key.MustGet(&res)
+		if res != timeDefaultValue {
+			t.Fatal("when key no exit, value cannot be modified")
+		}
+
 		if key.MustTryGet(&res) {
 			t.Fatal("key should not be")
 		}
@@ -53,7 +61,17 @@ func TestKeyOperationT(t *testing.T) {
 		op := NewOperation2[string, int, time.Time](ns, prefix, provider, CacheExpirationZero)
 
 		key := op.Key("a", 1)
-		fmt.Println(key.Key)
+		if key.Key != "ns:prefix_a_1" {
+			t.Fatal("error cache key be generated")
+		}
+
+		var timeDefaultValue time.Time
+		var res time.Time
+
+		res = key.MustGet()
+		if res != timeDefaultValue {
+			t.Fatal("when key no exit, value should be default")
+		}
 
 		res, ok := key.MustTryGet()
 		if ok {

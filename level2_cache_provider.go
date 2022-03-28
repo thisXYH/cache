@@ -24,6 +24,9 @@ type Level2CacheProvider struct {
 }
 
 // NewLevel2CacheProvider 新建一个二级缓存提供器。
+//  @l1: 一级缓存。
+//  @l2: 二级级缓存。
+//  @expireTime: 一级缓存的过期时间。
 func NewLevel2CacheProvider(l1, l2 CacheProvider, expireTime *Expiration) *Level2CacheProvider {
 	if expireTime == nil {
 		panic(fmt.Errorf("'expireTime' must not be nil"))

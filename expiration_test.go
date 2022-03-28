@@ -69,4 +69,14 @@ func TestNewExpireTimeFrom(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("not-rand", func(t *testing.T) {
+		var base time.Duration = 10
+		exp := NewExpiration(base, 0)
+		next := exp.NextExpireTime()
+
+		if base != next {
+			t.Fatal("no rand, should be equal")
+		}
+	})
 }

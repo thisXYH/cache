@@ -425,24 +425,3 @@ func TestMemoryCacheProvider_IncreaseOrCreate(t *testing.T) {
 		})
 	}
 }
-
-func TestMemoryCacheProvider_legalExpireTime(t *testing.T) {
-	type args struct {
-		t time.Duration
-	}
-	tests := []struct {
-		name string
-		m    *MemoryCacheProvider
-		args args
-		want time.Duration
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.m.legalExpireTime(tt.args.t); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MemoryCacheProvider.legalExpireTime() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}

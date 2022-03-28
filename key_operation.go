@@ -16,7 +16,7 @@ func (keyOp *KeyOperation) Get(value any) error {
 
 // MustGet 是 Get 的 panic 版。
 func (keyOp *KeyOperation) MustGet(value any) {
-	err := keyOp.p.Get(keyOp.Key, value)
+	err := keyOp.Get(value)
 	if err != nil {
 		panic(err)
 	}
@@ -30,7 +30,7 @@ func (keyOp *KeyOperation) TryGet(value any) (bool, error) {
 
 // MustTryGet 是 TryGet 的 panic 版。
 func (keyOp *KeyOperation) MustTryGet(value any) bool {
-	result, err := keyOp.p.TryGet(keyOp.Key, value)
+	result, err := keyOp.TryGet(value)
 	if err != nil {
 		panic(err)
 	}
@@ -45,7 +45,7 @@ func (keyOp *KeyOperation) Create(value any) (bool, error) {
 
 // MustCreate 是 Create 的 panic 版。
 func (keyOp *KeyOperation) MustCreate(value any) bool {
-	result, err := keyOp.p.Create(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	result, err := keyOp.Create(value)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +59,7 @@ func (keyOp *KeyOperation) Set(value any) error {
 
 // MustSet 是 Set 的 panic 版。
 func (keyOp *KeyOperation) MustSet(value any) {
-	err := keyOp.p.Set(keyOp.Key, value, keyOp.exp.NextExpireTime())
+	err := keyOp.Set(value)
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +73,7 @@ func (keyOp *KeyOperation) Remove() (bool, error) {
 
 // MustRemove 是 Remove 的 panic 版。
 func (keyOp *KeyOperation) MustRemove() bool {
-	result, err := keyOp.p.Remove(keyOp.Key)
+	result, err := keyOp.Remove()
 	if err != nil {
 		panic(err)
 	}
@@ -116,8 +116,7 @@ func (keyOp *KeyOperationT[T]) TryGet() (T, bool, error) {
 
 // MustTryGet 是 TryGet 的 panic 版。
 func (keyOp *KeyOperationT[T]) MustTryGet() (T, bool) {
-	var v T
-	result, err := keyOp.p.TryGet(keyOp.Key, &v)
+	v, result, err := keyOp.TryGet()
 	if err != nil {
 		panic(err)
 	}
