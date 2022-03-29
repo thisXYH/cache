@@ -5,52 +5,50 @@ import (
 	"time"
 )
 
-func TestOperation_oneKeyToStr(t *testing.T) {
-	op := &Operation{}
+func Test_oneKeyToStr(t *testing.T) {
 	type args struct {
 		v interface{}
 	}
+
 	tests := []struct {
 		name      string
-		c         *Operation
 		args      args
 		want      string
 		wantPanic bool
 	}{
+		{"bool_false", args{false}, "0", false},
+		{"bool_true", args{true}, "1", false},
 
-		{"bool_false", op, args{false}, "0", false},
-		{"bool_true", op, args{true}, "1", false},
+		{"int8", args{int8(2)}, "2", false},
+		{"int16", args{int16(3)}, "3", false},
+		{"int32", args{int32(4)}, "4", false},
+		{"int64", args{int64(5)}, "5", false},
+		{"int", args{int(6)}, "6", false},
 
-		{"int8", op, args{int8(2)}, "2", false},
-		{"int16", op, args{int16(3)}, "3", false},
-		{"int32", op, args{int32(4)}, "4", false},
-		{"int64", op, args{int64(5)}, "5", false},
-		{"int", op, args{int(6)}, "6", false},
+		{"uint8", args{uint8(7)}, "7", false},
+		{"uint16", args{uint16(8)}, "8", false},
+		{"uint32", args{uint32(9)}, "9", false},
+		{"uint64", args{uint64(10)}, "10", false},
+		{"uint", args{uint(11)}, "11", false},
 
-		{"uint8", op, args{uint8(7)}, "7", false},
-		{"uint16", op, args{uint16(8)}, "8", false},
-		{"uint32", op, args{uint32(9)}, "9", false},
-		{"uint64", op, args{uint64(10)}, "10", false},
-		{"uint", op, args{uint(11)}, "11", false},
+		{"float32", args{float32(12.12)}, "12.12", false},
+		{"float64", args{float32(13.13)}, "13.13", false},
 
-		{"float32", op, args{float32(12.12)}, "12.12", false},
-		{"float64", op, args{float32(13.13)}, "13.13", false},
+		{"complex", args{complex(14, 14)}, "(14+14i)", false},
 
-		{"complex", op, args{complex(14, 14)}, "(14+14i)", false},
-
-		{"string", op, args{"string"}, "string", false},
-		{"time", op, args{tn}, UnixTime(tn).String(), false},
-		{"unixTime", op, args{UnixTime(tn)}, UnixTime(tn).String(), false},
+		{"string", args{"string"}, "string", false},
+		{"time", args{tn}, UnixTime(tn).String(), false},
+		{"unixTime", args{UnixTime(tn)}, UnixTime(tn).String(), false},
 
 		// 支持类型的 pointer
-		{"pointer", op, args{&tn}, UnixTime(tn).String(), false},
+		{"pointer", args{&tn}, UnixTime(tn).String(), false},
 
 		// panic
-		{"nil", op, args{nil}, "", true},
-		{"map", op, args{map[string]int{"a": 1}}, "", true},
-		{"slice", op, args{[]int{1, 2, 3}}, "", true},
-		{"array", op, args{[...]int{1, 2, 3}}, "", true},
-		{"channel", op, args{make(chan int)}, "", true},
+		{"nil", args{nil}, "", true},
+		{"map", args{map[string]int{"a": 1}}, "", true},
+		{"slice", args{[]int{1, 2, 3}}, "", true},
+		{"array", args{[...]int{1, 2, 3}}, "", true},
+		{"channel", args{make(chan int)}, "", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -88,22 +86,9 @@ func TestOperation0(t *testing.T) {
 
 	t.Run("string", func(t *testing.T) {
 		op := NewOperation0[string](ns, prefix, provider, CacheExpirationZero)
-		k := op.Key()
 
-		var res string
-		res, ok, _ := k.TryGet()
-		if ok {
-			t.Fatal("key should not be")
-		}
-
-		k.Set("vv")
-		res, ok, _ = k.TryGet()
-		if !ok {
-			t.Fatal("key should   be")
-		}
-
-		if res != "vv" {
-			t.Fatal("value mismatch")
+		if op.Key().Key != "ns:prefix" {
+			t.Fatal("key error")
 		}
 	})
 }
@@ -114,43 +99,11 @@ func TestOperation1(t *testing.T) {
 	const ns = "ns"
 	const prefix = "prefix"
 
-	t.Run("int-string", func(t *testing.T) {
-		op := NewOperation1[int, string](ns, prefix, provider, CacheExpirationZero)
-		k := op.Key(100)
+	t.Run("bool-string", func(t *testing.T) {
+		op := NewOperation1[bool, string](ns, prefix, provider, CacheExpirationZero)
 
-		res, ok, _ := k.TryGet()
-		if ok {
-			t.Fatal("key should not be")
-		}
-
-		k.Set("vv")
-		res, ok, _ = k.TryGet()
-		if !ok {
-			t.Fatal("key should   be")
-		}
-
-		if res != "vv" {
-			t.Fatal("value mismatch")
-		}
-	})
-
-	t.Run("string-int", func(t *testing.T) {
-		op := NewOperation1[string, int](ns, prefix, provider, CacheExpirationZero)
-		k := op.Key("g")
-
-		res, ok, _ := k.TryGet()
-		if ok {
-			t.Fatal("key should not be")
-		}
-
-		k.Set(33)
-		res, ok, _ = k.TryGet()
-		if !ok {
-			t.Fatal("key should   be")
-		}
-
-		if res != 33 {
-			t.Fatal("value mismatch")
+		if op.Key(true).Key != "ns:prefix_1" {
+			t.Fatal("key error")
 		}
 	})
 }
@@ -161,23 +114,11 @@ func TestOperation2(t *testing.T) {
 	const ns = "ns"
 	const prefix = "prefix"
 
-	t.Run("int-string-float64", func(t *testing.T) {
-		op := NewOperation2[int, string, float64](ns, prefix, provider, CacheExpirationZero)
-		k := op.Key(100, "gg")
+	t.Run("bool-int-string", func(t *testing.T) {
+		op := NewOperation2[bool, int, string](ns, prefix, provider, CacheExpirationZero)
 
-		res, ok, _ := k.TryGet()
-		if ok {
-			t.Fatal("key should not be")
-		}
-
-		k.Set(0.5)
-		res, ok, _ = k.TryGet()
-		if !ok {
-			t.Fatal("key should   be")
-		}
-
-		if res != 0.5 {
-			t.Fatal("value mismatch")
+		if op.Key(true, 9).Key != "ns:prefix_1_9" {
+			t.Fatal("key error")
 		}
 	})
 }
@@ -188,24 +129,11 @@ func TestOperation3(t *testing.T) {
 	const ns = "ns"
 	const prefix = "prefix"
 
-	t.Run("int-string-float64-time", func(t *testing.T) {
-		op := NewOperation3[int, string, float64, time.Time](ns, prefix, provider, CacheExpirationZero)
-		k := op.Key(100, "gg", 1.5)
+	t.Run("bool-int-uint-string", func(t *testing.T) {
+		op := NewOperation3[bool, int, uint, string](ns, prefix, provider, CacheExpirationZero)
 
-		res, ok, _ := k.TryGet()
-		if ok {
-			t.Fatal("key should not be")
-		}
-
-		v := time.Date(2022, 3, 15, 12, 22, 30, 0, time.UTC)
-		k.Set(v)
-		res, ok, _ = k.TryGet()
-		if !ok {
-			t.Fatal("key should   be")
-		}
-
-		if res != v {
-			t.Fatal("value mismatch")
+		if op.Key(true, 9, 8).Key != "ns:prefix_1_9_8" {
+			t.Fatal("key error")
 		}
 	})
 }
@@ -216,24 +144,77 @@ func TestOperation4(t *testing.T) {
 	const ns = "ns"
 	const prefix = "prefix"
 
-	t.Run("int-int-string-float64-string", func(t *testing.T) {
-		op := NewOperation4[int, int, string, float64, string](ns, prefix, provider, CacheExpirationZero)
-		k := op.Key(100, 200, "gg", 0.5)
+	t.Run("bool-int-uint-float32-string", func(t *testing.T) {
+		op := NewOperation4[bool, int, uint, float32, string](ns, prefix, provider, CacheExpirationZero)
 
-		var res string
-		res, ok, _ := k.TryGet()
-		if ok {
-			t.Fatal("key should not be")
+		if op.Key(true, 9, 8, 0.50).Key != "ns:prefix_1_9_8_0.5" {
+			t.Fatal("key error")
 		}
+	})
+}
 
-		k.Set("vv")
-		res, ok, _ = k.TryGet()
-		if !ok {
-			t.Fatal("key should   be")
+func TestOperation5(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("bool-int-uint-float32-byte-string", func(t *testing.T) {
+		op := NewOperation5[bool, int, uint, float32, byte, string](ns, prefix, provider, CacheExpirationZero)
+
+		if op.Key(true, 9, 8, 0.50, 255).Key != "ns:prefix_1_9_8_0.5_255" {
+			t.Fatal("key error")
 		}
+	})
+}
 
-		if res != "vv" {
-			t.Fatal("value mismatch")
+func TestOperation6(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("bool-int-uint-float32-byte-string-string", func(t *testing.T) {
+		op := NewOperation6[bool, int, uint, float32, byte, string, string](ns, prefix, provider, CacheExpirationZero)
+
+		if op.Key(true, 9, 8, 0.50, 255, "a").Key != "ns:prefix_1_9_8_0.5_255_a" {
+			t.Fatal("key error")
+		}
+	})
+}
+
+func TestOperation7(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("bool-int-uint-float32-byte-string-time-string", func(t *testing.T) {
+		op := NewOperation7[bool, int, uint, float32, byte, string, time.Time, string](ns, prefix, provider, CacheExpirationZero)
+
+		tv := time.Date(2022, 03, 29, 15, 16, 00, 00, time.UTC)
+		unixTv := UnixTime(tv)
+
+		if op.Key(true, 9, 8, 0.50, 255, "a", tv).Key != "ns:prefix_1_9_8_0.5_255_a_"+unixTv.String() {
+			t.Fatal("key error")
+		}
+	})
+}
+
+func TestOperation8(t *testing.T) {
+	provider := NewMemoryCacheProvider(time.Second)
+
+	const ns = "ns"
+	const prefix = "prefix"
+
+	t.Run("bool-int-uint-float32-byte-string-time-unixTime-string", func(t *testing.T) {
+		op := NewOperation8[bool, int, uint, float32, byte, string, time.Time, UnixTime, string](ns, prefix, provider, CacheExpirationZero)
+
+		tv := time.Date(2022, 03, 29, 15, 16, 00, 00, time.UTC)
+		unixTv := UnixTime(tv)
+
+		if op.Key(true, 9, 8, 0.50, 255, "a", tv, unixTv).Key != "ns:prefix_1_9_8_0.5_255_a_"+unixTv.String()+"_"+unixTv.String() {
+			t.Fatal("key error")
 		}
 	})
 }
