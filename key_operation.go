@@ -80,6 +80,37 @@ func (keyOp *KeyOperation) MustRemove() bool {
 	return result
 }
 
+// Increase 为已存在的指定缓存的值（必须是整数）增加1。
+//  return: 符合条件返回增加后的值，反之返回默认值，以及对应的 error。
+func (keyOp *KeyOperation) Increase() (int64, error) {
+	return keyOp.p.Increase(keyOp.Key)
+}
+
+// MustRemove 是 Increase 的 panic 版。
+func (keyOp *KeyOperation) MustIncrease() int64 {
+	result, err := keyOp.Increase()
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+// IncreaseOrCreate 为指定缓存的值增加一个增量(负数==减法)，如果不存在则创建该缓存。
+//  @increment: 增量，如果 key 不存在，则当成新缓存的 value。
+// return: 返回增加后的值。
+func (keyOp *KeyOperation) IncreaseOrCreate(increment int64) (int64, error) {
+	return keyOp.p.IncreaseOrCreate(keyOp.Key, increment, keyOp.exp.NextExpireTime())
+}
+
+// MustIncreaseOrCreate 是 IncreaseOrCreate 的 panic 版。
+func (keyOp *KeyOperation) MustIncreaseOrCreate(increment int64) int64 {
+	result, err := keyOp.IncreaseOrCreate(increment)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 // KeyOperationT 是泛型版本的 KeyOperation 。
 type KeyOperationT[T any] struct {
 	p   CacheProvider
@@ -160,6 +191,37 @@ func (keyOp *KeyOperationT[T]) Remove() (bool, error) {
 // MustRemove 是 Remove 的 panic 版。
 func (keyOp *KeyOperationT[T]) MustRemove() bool {
 	result, err := keyOp.Remove()
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+// Increase 为已存在的指定缓存的值（必须是整数）增加1。
+//  return: 符合条件返回增加后的值，反之返回默认值，以及对应的 error。
+func (keyOp *KeyOperationT[T]) Increase() (int64, error) {
+	return keyOp.p.Increase(keyOp.Key)
+}
+
+// MustRemove 是 Increase 的 panic 版。
+func (keyOp *KeyOperationT[T]) MustIncrease() int64 {
+	result, err := keyOp.Increase()
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+// IncreaseOrCreate 为指定缓存的值增加一个增量(负数==减法)，如果不存在则创建该缓存。
+//  @increment: 增量，如果 key 不存在，则当成新缓存的 value。
+// return: 返回增加后的值。
+func (keyOp *KeyOperationT[T]) IncreaseOrCreate(increment int64) (int64, error) {
+	return keyOp.p.IncreaseOrCreate(keyOp.Key, increment, keyOp.exp.NextExpireTime())
+}
+
+// MustIncreaseOrCreate 是 IncreaseOrCreate 的 panic 版。
+func (keyOp *KeyOperationT[T]) MustIncreaseOrCreate(increment int64) int64 {
+	result, err := keyOp.IncreaseOrCreate(increment)
 	if err != nil {
 		panic(err)
 	}

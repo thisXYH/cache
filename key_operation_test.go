@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -50,6 +51,26 @@ func TestKeyOperation(t *testing.T) {
 			t.Fatal("remove fail")
 		}
 	})
+
+	t.Run("increase", func(t *testing.T) {
+		op := NewOperation(ns, prefix, 1, provider, CacheExpirationZero)
+		key := op.Key("increase")
+
+		_, err := key.Increase()
+		if !strings.HasPrefix(err.Error(), "cache key does not exist") {
+			t.Fatal("increase fail:", err.Error())
+		}
+
+		if key.MustIncreaseOrCreate(2) != 2 {
+			t.Fatal("increase or create fail")
+		}
+
+		if key.MustIncrease() != 3 {
+			t.Fatal("increase fail")
+		}
+
+		key.MustRemove()
+	})
 }
 
 func TestKeyOperationT(t *testing.T) {
@@ -98,5 +119,25 @@ func TestKeyOperationT(t *testing.T) {
 		if !key.MustRemove() {
 			t.Fatal("remove fail")
 		}
+	})
+
+	t.Run("increaseT", func(t *testing.T) {
+		op := NewOperation1[string, int](ns, prefix, provider, CacheExpirationZero)
+		key := op.Key("increaseT")
+
+		_, err := key.Increase()
+		if !strings.HasPrefix(err.Error(), "cache key does not exist") {
+			t.Fatal("increase fail:", err.Error())
+		}
+
+		if key.MustIncreaseOrCreate(2) != 2 {
+			t.Fatal("increase or create fail")
+		}
+
+		if key.MustIncrease() != 3 {
+			t.Fatal("increase fail")
+		}
+
+		key.MustRemove()
 	})
 }

@@ -41,7 +41,7 @@ type CacheProvider interface {
 	// return: 符合条件返回增加后的值，反之返回默认值，以及对应的 error。
 	Increase(key string) (int64, error)
 
-	// Increase 为指定缓存的值增加一个增量(负数==减法)，如果不存在则创建该缓存。
+	// IncreaseOrCreate 为指定缓存的值增加一个增量(负数==减法)，如果不存在则创建该缓存。
 	//  @key: cache key.
 	//  @increment: 增量，如果 key 不存在，则当成新缓存的 value。
 	//  @t: 过期时长， 0表不过期。
