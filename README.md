@@ -22,6 +22,7 @@ go get -u github.com/thisXYH/cache@latest
 ## 注意事项
 * redis cahce provider 的测试用例需要自己提供redis连接信息才能测试成功。通过 `conf_test.go` 的 `getNewEveryTime` 调整 redis 配置，默认使用 `127.0.0.1:6379` 。
 * concurrent rand source 的测试用例是并发测试，可能需要跑多次才能成功。
+* 新建 redis client 时 `Options.MaxRetries` 用于指定客户端失败重试，当重试次数不等于 1 的时候，由于客户端会自动重试，可能会导致 `Increase` 和 `IncreaseOrCreate` 语义不准。
 
 ## 缓存语义
 ```go
